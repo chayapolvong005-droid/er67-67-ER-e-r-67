@@ -286,7 +286,21 @@ ul.camrules li{margin-bottom:2px}
 .fbox p{margin:2px 0 8px;font-size:1.05rem}
 .recipe{border:2px dashed var(--ink);padding:10px 14px;margin:8px 0;background:var(--paper)}
 .recipe p{margin:2px 0;font-size:1rem}
+#toast{position:fixed;left:50%;bottom:max(16px,env(safe-area-inset-bottom,0px));transform:translate(-50%,24px);opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:60;width:min(92vw,420px);padding:10px 14px;background:var(--ink);color:var(--paper);border-left:5px solid var(--warn);box-shadow:0 4px 16px rgba(0,0,0,.35)}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast small{display:block;opacity:.8}
+.achs{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}
+.ach{padding:10px 12px;border:2px solid var(--line);background:var(--paper);display:flex;flex-direction:column;gap:2px;min-width:0}
+.ach.got{border-color:var(--ok);background:var(--ctrl)}
+.ach b{font-size:1rem}
+.ach .st{font-family:var(--font-mono);font-size:.8rem;color:var(--muted)}
+.ach.got .st{color:var(--ok);font-weight:600}
+.ach .fun{font-size:.85rem;color:var(--muted);font-style:italic}
+.xpbar{height:16px;border:2px solid var(--ink);background:var(--ctrl);margin:6px 0 4px}
+.xpbar i{display:block;height:100%;background:var(--ok)}
+.lvbig{font-family:var(--font-display);font-size:1.6rem;line-height:1.4}
 @media (prefers-reduced-motion: reduce){
+  #toast{transition:none}
   .stamp,.shake{animation:none}
   .fill{transition:none}
 }
@@ -747,7 +761,7 @@ let iqN=-1;
 
 /* ---------- ร้านแต่งตัว ---------- */
 const WIN_BONUS=10;
-const SLOTS=[['outfit','เสื้อผ้า'],['hat','หมวก'],['face','หน้า'],['aura','ออร่า']];
+const SLOTS=[['outfit','เสื้อผ้า'],['hat','หมวก'],['face','หน้า'],['aura','ออร่า'],['pet','แมว']];
 const ITEMS={
  outfit:[
   {id:'gown',name:'ชุดคนไข้',price:0},
@@ -784,10 +798,172 @@ const ITEMS={
   {id:'noodle',name:'เส้นก๋วยเตี๋ยวลอย',price:35},
   {id:'bolt',name:'สายฟ้า',price:45},
   {id:'fire',name:'เปลวไฟ',price:55}
+ ],
+ pet:[
+  {id:'none',name:'ไม่เลี้ยง',price:0},
+  {id:'orange',name:'แมวส้มเจ้าเล่ห์',price:25},
+  {id:'black',name:'แมวดำจอมขโมยปลา',price:25},
+  {id:'white',name:'แมวขาวขนปุย',price:30},
+  {id:'calico',name:'แมวสามสีนำโชค',price:35},
+  {id:'siam',name:'แมวสีสอดขี้เซา',price:35}
  ]
 };
-const DEF_WEAR={outfit:'gown',hat:'none',face:'none',aura:'none'};
+const DEF_WEAR={outfit:'gown',hat:'none',face:'none',aura:'none',pet:'none'};
 const itemOf=(slot,id)=>(ITEMS[slot]||[]).find(i=>i.id===id);
+
+/* ---------- เหรียญความสำเร็จตลกๆ ---------- */
+const CAT_QUIPS=['เมี้ยว','ง่วงจัง ขอนอนบนไหล่','หิวปลา','ยามนั่นหน้าไม่รับแขก','เมี้ยวๆ (แปลว่า เร็วเข้า)','คนนี้ IQ 300 แต่ลืมให้อาหารฉัน','ขอเลียขนก่อนนะ'];
+const CAT_ALERT=['ฟู่','เมี้ยว','ระวัง'];
+const CAT_PICK=['ขอซดน้ำซุปหน่อย','ไม่แบ่งแมวเหรอ','กลิ่นหอมจัง'];
+const ACH=[
+ {id:'first',name:'หนีสำเร็จครั้งแรก',desc:'หนีให้สำเร็จ 1 ครั้ง',fun:'ป้าติ๋มขอลายเซ็นไปแปะหน้าร้าน',r:5,p:()=>[ME.wins,1]},
+ {id:'regular',name:'แขกประจำห้อง 407',desc:'ถูกจับรวม 10 ครั้ง',fun:'ยามเริ่มทักทายชื่อคุณได้แล้ว',r:5,p:()=>[ME.caught,10]},
+ {id:'vip',name:'ลูกค้า VIP ของยาม',desc:'ถูกจับรวม 100 ครั้ง',fun:'ยามทำบัตรสะสมแต้มให้ ครบสิบครั้งแถมหมอนข้าง',r:20,p:()=>[ME.caught,100]},
+ {id:'punch10',name:'หมัดเหล็กขี้หิว',desc:'ต่อยยามสลบรวม 10 คน',fun:'หมัดเดียวกับที่ใช้จิ้มก๋วยเตี๋ยว',r:8,p:()=>[ME.kos,10]},
+ {id:'punch50',name:'ยามกลัวทั้งตึก',desc:'ต่อยยามสลบรวม 50 คน',fun:'ตึก 4 ออกประกาศ ห้ามยามอยู่ใกล้คนไข้ห้อง 407',r:20,p:()=>[ME.kos,50]},
+ {id:'swing100',name:'ชกลมชกลม',desc:'ปล่อยหมัดรวม 100 ครั้ง ต่อยโดนหรือไม่โดนก็นับ',fun:'ลมแถวนั้นเริ่มฟ้องร้อง',r:6,p:()=>[ME.cnt.swings,100]},
+ {id:'bowl50',name:'สายซดน้ำซุป',desc:'เก็บชามก๋วยเตี๋ยวรวม 50 ชาม',fun:'หมอบอกให้ลดโซเดียม ธีบอกว่าสมองต้องการ',r:6,p:()=>[ME.bowls,50]},
+ {id:'bowl200',name:'เศรษฐีเส้นเล็ก',desc:'เก็บชามก๋วยเตี๋ยวรวม 200 ชาม',fun:'ป้าติ๋มเสนอให้ลงทุนเปิดสาขา',r:15,p:()=>[ME.bowls,200]},
+ {id:'hint20',name:'ขอใบ้เป็นอาชีพ',desc:'ขอใบ้รวม 20 ครั้ง',fun:'IQ 300 แต่ชอบถามคนอื่น',r:5,p:()=>[ME.cnt.hints,20]},
+ {id:'wrong30',name:'ผิดอย่างมีสไตล์',desc:'ตอบผิดรวม 30 ครั้ง',fun:'ไม่ใช่พลาด เรียกว่าเก็บข้อมูลเชิงลบ',r:5,p:()=>[ME.cnt.wrong,30]},
+ {id:'closet',name:'แฟชั่นนิสต้าตึก 4',desc:'ซื้อของที่ห้องแต่งตัวครบ 5 ชิ้น',fun:'ตู้เสื้อผ้ากว้างกว่าห้อง 407',r:8,p:()=>[ME.owned.length,5]},
+ {id:'catlover',name:'ทาสแมว',desc:'ซื้อแมวมาเกาะไหล่',fun:'แมวบอกว่าคุณเป็นลูกน้องของมัน',r:8,p:()=>[ME.owned.some(k=>k.indexOf('pet:')===0)?1:0,1]},
+ {id:'nobowl',name:'ประท้วงด้วยการอดข้าว',desc:'หนีสำเร็จโดยไม่เก็บชามก๋วยเตี๋ยวเลยสักชาม',fun:'ใครก็ได้ไปดูแลเขาที',r:10,ev:c=>c.win&&c.bowls===0},
+ {id:'perfect',name:'ผู้บริสุทธิ์ผุดผ่อง',desc:'หนีสำเร็จโดยไม่ถูกจับเลยสักครั้ง',fun:'ยามสงสัยว่าคุณเป็นพนักงานใหม่',r:10,ev:c=>c.win&&c.caught===0},
+ {id:'speed',name:'เร็วกว่าน้ำซุปเดือด',desc:'หนีสำเร็จโดยใช้เวลาเล่นรวมไม่เกิน 12 นาที',fun:'ป้าติ๋มยังไม่ทันเปิดแก๊สเลย',r:12,ev:c=>c.win&&c.time<=720},
+ {id:'rage',name:'คลั่งตัวพ่อ',desc:'หนีสำเร็จในโหมดคลั่ง',fun:'ยามขอเปลี่ยนชื่อโหมดเป็น "ธีโมโห"',r:10,p:()=>[ME.best.rage?1:0,1]},
+ {id:'allmodes',name:'ครบทุกรส',desc:'หนีสำเร็จครบทั้ง 5 โหมด',fun:'เหมือนกินครบ เส้นเล็ก เส้นใหญ่ บะหมี่ เกาเหลา และเย็นตาโฟ',r:25,p:()=>[MODE_IDS.filter(id=>ME.best[id]).length,5]},
+ {id:'racer',name:'ลูกแหกตัวจริง',desc:'แข่งออนไลน์จนจบ 1 ครั้ง',fun:'วิ่งเร็วกว่าเพื่อน หรืออย่างน้อยเร็วกว่ากล้องวงจรปิด',r:5,p:()=>[ME.racePlayed,1]},
+ {id:'racewin',name:'ราชาห้องแข่ง',desc:'ชนะการแข่งออนไลน์ 1 ครั้ง',fun:'เพื่อนขอล้างแค้นรอบหน้า',r:10,p:()=>[ME.raceWins,1]},
+ {id:'iqpoke',name:'จิ้มจนไอคิวเหลือ 299',desc:'เหรียญลับ ที่หน้าแรกมีอะไรให้จิ้มอยู่',fun:'ผลตรวจใหม่ออกมา 299.9 ปัดขึ้นเป็น 300 เหมือนเดิม',r:3,secret:true,p:()=>[ME.cnt.iq,15]}
+];
+const TQ=[];let tBusy=false;
+function toast(a){TQ.push(a);if(!tBusy)nextToast();}
+function nextToast(){
+  const a=TQ.shift();
+  if(!a){tBusy=false;return;}
+  tBusy=true;
+  let el=document.getElementById('toast');
+  if(!el){el=document.createElement('div');el.id='toast';el.setAttribute('role','status');el.setAttribute('aria-live','polite');document.body.appendChild(el);}
+  el.innerHTML='<b>'+esc(a.tag||'เหรียญใหม่')+' '+esc(a.name)+'</b>'+(a.r?' <span class="mono">+'+a.r+' ชาม</span>':'')+(a.xp?' <span class="mono">+'+a.xp+' XP</span>':'')+'<small>'+esc(a.fun||'')+'</small>';
+  el.className='show';
+  setTimeout(()=>{el.className='';setTimeout(nextToast,300);},3800);
+}
+function checkAch(ctx){
+  let again=true,n=0;
+  while(again&&n++<5){
+    again=false;
+    for(const a of ACH){
+      if(ME.ach.includes(a.id))continue;
+      let ok=false;
+      if(a.ev)ok=!!(ctx&&a.ev(ctx));
+      else if(a.p){const v=a.p();ok=v[0]>=v[1];}
+      if(!ok)continue;
+      ME.ach=normAch(ME.ach.concat([a.id]));ME.bowls+=a.r;
+      saveLocal();pushMe();toast(a);sfx('solve');again=true;
+    }
+  }
+}
+
+/* ---------- บัตรผ่าน (Battle Pass) ---------- */
+const BP_KEYS=['stages','wins','kos','bowls','swings','caught','hints','wrong','race'];
+const bpNeed=L=>80*L;
+const BP_LV=[
+ {b:150},
+ {b:40},
+ {item:['pet','orange']},
+ {b:60},
+ {item:['outfit','ninja']},
+ {b:80},
+ {item:['aura','sparkle']},
+ {b:100},
+ {item:['face','shades']},
+ {item:['hat','crown']},
+ {b:120},
+ {item:['pet','calico']},
+ {item:['outfit','suit']},
+ {b:150},
+ {item:['outfit','gold'],b:200}
+];
+const BP_SEASON=[
+ {id:'s_win',name:'หนีสำเร็จครั้งแรกของซีซัน',k:'wins',t:1,xp:80},
+ {id:'s_stage',name:'ผ่านด่านรวม 15 ด่าน',k:'stages',t:15,xp:80},
+ {id:'s_ko',name:'ต่อยยามสลบ 10 คน',k:'kos',t:10,xp:80},
+ {id:'s_bowl',name:'เก็บชามก๋วยเตี๋ยวในด่าน 30 ชาม',k:'bowls',t:30,xp:60},
+ {id:'s_nohint',name:'หนีสำเร็จโดยไม่ขอใบ้เลย',ev:c=>c.win&&c.hints===0,xp:100},
+ {id:'s_caught',name:'ถูกจับแล้วลุกขึ้นสู้ 20 ครั้ง',k:'caught',t:20,xp:60},
+ {id:'s_race',name:'แข่งออนไลน์ 1 ครั้ง',k:'race',t:1,xp:80},
+ {id:'s_rage',name:'หนีสำเร็จในโหมดคลั่ง',ev:c=>c.win&&c.mode==='rage',xp:120},
+ {id:'s_hard',name:'หนีสำเร็จในโหมดยาก โคตรยาก หรือยากมากๆ',ev:c=>c.win&&['hard','insane','hell'].indexOf(c.mode)>=0,xp:100},
+ {id:'s_swing',name:'ปล่อยหมัด 60 ครั้ง',k:'swings',t:60,xp:60}
+];
+const BP_DAILY=[
+ {id:'d_stage',name:'ผ่านด่านให้ได้ 3 ด่าน',k:'stages',t:3,xp:30},
+ {id:'d_bowl',name:'เก็บชามก๋วยเตี๋ยว 6 ชาม',k:'bowls',t:6,xp:30},
+ {id:'d_ko',name:'ต่อยยามสลบ 3 คน (โหมดคลั่ง)',k:'kos',t:3,xp:30},
+ {id:'d_swing',name:'ปล่อยหมัด 20 ครั้ง (โหมดคลั่ง)',k:'swings',t:20,xp:30},
+ {id:'d_win',name:'หนีสำเร็จ 1 ครั้ง',k:'wins',t:1,xp:50},
+ {id:'d_caught',name:'ถูกจับ 3 ครั้ง ลองพลาดดูบ้าง',k:'caught',t:3,xp:30},
+ {id:'d_hint',name:'ขอใบ้ 2 ครั้ง',k:'hints',t:2,xp:30},
+ {id:'d_wrong',name:'ตอบผิดอย่างมีสไตล์ 5 ครั้ง',k:'wrong',t:5,xp:30}
+];
+function dayKey(){const d=new Date();return String(d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate());}
+function bpRoll(){
+  const bp=ME.bp,k=dayKey();
+  if(bp.day!==k){bp.day=k;bp.ddone=[];BP_KEYS.forEach(x=>{bp.dc[x]=0;});}
+}
+function bpDaily(){
+  let h=Number(dayKey())%2147483647||1;
+  const pickI=[];
+  while(pickI.length<3){h=(h*48271)%2147483647;const i=h%BP_DAILY.length;if(!pickI.includes(i))pickI.push(i);}
+  return pickI.map(i=>BP_DAILY[i]);
+}
+function bpRewardText(r){
+  const a=[];
+  if(r.b)a.push('ชามก๋วยเตี๋ยว '+r.b+' ชาม');
+  if(r.item){const it=itemOf(r.item[0],r.item[1]),sl=SLOTS.find(x=>x[0]===r.item[0]);a.push((it?it.name:'')+' ('+(sl?sl[1]:'')+')');}
+  return a.join(' + ');
+}
+function bpGive(L){
+  const r=BP_LV[L-1];if(!r)return;
+  let txt=[];
+  if(r.b){ME.bowls+=r.b;txt.push('ชามก๋วยเตี๋ยว '+r.b+' ชาม');}
+  if(r.item){
+    const sl=r.item[0],id=r.item[1],it=itemOf(sl,id);
+    if(it){
+      if(hasItem(sl,id)){ME.bowls+=it.price;txt.push(it.name+' ซ้ำ แปลงเป็น '+it.price+' ชาม');}
+      else{ME.owned=normOwned(ME.owned.concat([sl+':'+id]));txt.push('ปลดล็อก '+it.name);}
+    }
+  }
+  sfx('win');
+  toast({tag:'เลเวลอัป เลเวล '+L,name:txt.join(' + '),fun:'รับรางวัลจากบัตรผ่านเรียบร้อย'});
+  checkAch();
+}
+function bpXp(n,label){
+  const bp=ME.bp;bp.xp+=n;
+  toast({tag:'ภารกิจสำเร็จ',name:label,xp:n,fun:'ได้ XP เข้าบัตรผ่าน'});
+  sfx('solve');
+  while(bp.lv<BP_LV.length&&bp.xp>=bpNeed(bp.lv+1)){bp.lv++;bpGive(bp.lv);}
+  saveLocal();
+}
+function bpCheck(ctx){
+  const bp=ME.bp;bpRoll();let any=false;
+  for(const m of BP_SEASON){
+    if(bp.done.includes(m.id))continue;
+    const ok=m.ev?!!(ctx&&m.ev(ctx)):bp.c[m.k]>=m.t;
+    if(ok){bp.done.push(m.id);bpXp(m.xp,m.name);any=true;}
+  }
+  for(const m of bpDaily()){
+    if(bp.ddone.includes(m.id))continue;
+    if(bp.dc[m.k]>=m.t){bp.ddone.push(m.id);bpXp(m.xp,m.name+' (ประจำวัน)');any=true;}
+  }
+  if(any){saveLocal();pushMe();}
+}
+function bpAdd(k,n){
+  bpRoll();
+  ME.bp.c[k]=(ME.bp.c[k]||0)+(n||1);ME.bp.dc[k]=(ME.bp.dc[k]||0)+(n||1);
+  bpCheck();
+}
 
 /* ---------- สถานะเกม ---------- */
 let unlocked=false;
@@ -1160,6 +1336,33 @@ function drawAura(c,x,y,id,t,front){
     }
   }
 }
+
+const CATC={
+ orange:{b:'#e8923a',d:'#b8651a',e:'#2f7d3a'},
+ black:{b:'#2a2b33',d:'#15161b',e:'#f2d54a'},
+ white:{b:'#f6f3ee',d:'#d9d4cb',e:'#3a7dc0'},
+ calico:{b:'#f6f3ee',d:'#e8923a',d2:'#2a2b33',e:'#2f7d3a'},
+ siam:{b:'#eadfc8',d:'#5b4636',e:'#3a7dc0'}
+};
+function drawCat(c,x,y,kind,t,side){
+  const k=CATC[kind];if(!k)return;
+  const sway=Math.sin(t*3)*2,blink=Math.sin(t*.9)>.96,hy=-5.5;
+  c.save();c.translate(x,y);c.scale(side||1,1);
+  c.strokeStyle=kind==='siam'?k.d:k.b;c.lineWidth=2.2;c.lineCap='round';
+  c.beginPath();c.moveTo(-4,2);c.quadraticCurveTo(-9,sway*.5,-8,-6+sway);c.stroke();c.lineCap='butt';
+  c.fillStyle=k.b;c.beginPath();c.ellipse(0,0,5,4,0,0,7);c.fill();
+  if(kind==='orange'){c.fillStyle=k.d;c.fillRect(-2,-4,1.2,3);c.fillRect(1,-4,1.2,3);}
+  if(kind==='calico'){c.fillStyle=k.d;c.beginPath();c.arc(-2,0,2.4,0,7);c.fill();c.fillStyle=k.d2;c.beginPath();c.arc(3,1,1.9,0,7);c.fill();}
+  c.fillStyle=k.b;c.beginPath();c.arc(1,hy,4,0,7);c.fill();
+  c.beginPath();c.moveTo(-2.4,hy-2);c.lineTo(-2,hy-7.5);c.lineTo(1,hy-3);c.fill();
+  c.beginPath();c.moveTo(1,hy-3);c.lineTo(4.2,hy-7.5);c.lineTo(4.4,hy-2);c.fill();
+  if(kind==='siam'){c.fillStyle=k.d;c.beginPath();c.moveTo(-2.4,hy-2);c.lineTo(-2,hy-7.5);c.lineTo(1,hy-3);c.fill();c.beginPath();c.moveTo(1,hy-3);c.lineTo(4.2,hy-7.5);c.lineTo(4.4,hy-2);c.fill();c.beginPath();c.arc(1,hy+1,2.5,0,7);c.fill();}
+  if(kind==='calico'){c.fillStyle=k.d;c.beginPath();c.moveTo(-2.4,hy-2);c.lineTo(-2,hy-7.5);c.lineTo(1,hy-3);c.fill();c.fillStyle=k.d2;c.beginPath();c.arc(3,hy-1,1.8,0,7);c.fill();}
+  if(blink){c.strokeStyle=k.d;c.lineWidth=1;c.beginPath();c.moveTo(-1.2,hy);c.lineTo(.2,hy);c.moveTo(2,hy);c.lineTo(3.4,hy);c.stroke();}
+  else{c.fillStyle=k.e;c.fillRect(-1.4,hy-1,1.6,2);c.fillRect(2,hy-1,1.6,2);c.fillStyle='#111';c.fillRect(-.9,hy-.7,.7,1.4);c.fillRect(2.5,hy-.7,.7,1.4);}
+  c.fillStyle='#f08ca0';c.fillRect(.4,hy+1.4,1.2,1);
+  c.restore();
+}
 function drawHero(c,x,y,o){
   const wr=o.wear||DEF_WEAR,fx=o.fx||0,fy=o.fy===undefined?1:o.fy,sw=o.sw||0,t=o.t||0,eyes=o.eyes!==false;
   const cc=HEROC[wr.outfit]||HEROC.gown,out=wr.outfit,hat=wr.hat;
@@ -1238,6 +1441,7 @@ function drawHero(c,x,y,o){
     c.fillStyle='#e5484d';c.fillRect(x-1,y-20,2,2.5);
   }
   drawAura(c,x,y,wr.aura,t,true);
+  if(wr.pet&&wr.pet!=='none'){const sd=fx>0.3?-1:1;drawCat(c,x+9*sd,y-11,wr.pet,t,sd);}
 }
 function drawNpc(c,x,y,kind,t){
   const bob=Math.sin(t*3+x)*1;
@@ -1272,7 +1476,7 @@ function say(o,text,dur){
   W.bubbles=W.bubbles.filter(b=>b.o!==o);
   W.bubbles.push({o,text,t:dur||2.2});
   const t=$('#ticker');
-  if(t){t.textContent='';const bb=document.createElement('b');bb.textContent=(o==='p'?'ธี':o.name)+': ';t.appendChild(bb);t.appendChild(document.createTextNode(text));}
+  if(t){t.textContent='';const bb=document.createElement('b');bb.textContent=(o==='p'?'ธี':o==='cat'?'แมว':o.name)+': ';t.appendChild(bb);t.appendChild(document.createTextNode(text));}
 }
 function flood(fx,fy){
   const cols=W.cols,rows=W.rows,d=new Int16Array(cols*rows).fill(-1),q=[fx+fy*cols];
@@ -1329,12 +1533,12 @@ function chase(g,dist){
 function alertGuard(g,silent){
   if(g.alert||g.ko)return;
   g.alert=true;
-  if(!silent){say(g,rp(GUARD_SHOUTS),1.8);sfx('alert');}
+  if(!silent){say(g,rp(GUARD_SHOUTS),1.8);sfx('alert');if(ME.wear.pet!=='none')say('cat',rp(CAT_ALERT),1.4);}
   W.guards.forEach(o=>{if(o!==g&&!o.ko&&!o.alert&&Math.hypot(o.x-g.x,o.y-g.y)<5)alertGuard(o,true);});
 }
 function punch(){
   if(!W||G.screen!=='play'||W.puzzleOpen||!isRage()||W.cd>0)return;
-  W.cd=W.raging>0?0.3:0.45;W.punchT=0.18;sfx('punch');
+  W.cd=W.raging>0?0.3:0.45;W.punchT=0.18;sfx('punch');ME.cnt.swings++;bpAdd('swings');
   const dmg=W.raging>0?3:1;
   for(const g of W.guards){
     if(g.ko)continue;
@@ -1347,10 +1551,11 @@ function punch(){
     if(!hitsWall(g.x,g.y+uy*.5))g.y+=uy*.5;
     if(W.raging<=0)W.rage=Math.min(100,W.rage+34);
     if(g.hp<=0){
-      g.ko=true;g.sees=false;W.kos++;G.kos++;ME.kos++;saveLocal();
+      g.ko=true;g.sees=false;W.kos++;G.kos++;ME.kos++;saveLocal();checkAch();bpAdd('kos');
       sfx('ko');say(g,rp(KO_QUIPS),2.4);
     }else{sfx('hit');say(g,rp(OUCH_QUIPS),1.4);}
   }
+  if(ME.cnt.swings%10===0)checkAch();
   if(W.rage>=100&&W.raging<=0&&!W.rageTold){W.rageTold=true;say('p','มาตรวัดเต็มแล้ว กด R เลย',2.6);}
 }
 function goRage(){
@@ -1395,7 +1600,7 @@ function initWorld(){
   grid.forEach((r,y)=>r.forEach((c,x)=>{if(c==='P'){P=[x,y];r[x]='.';}else if(c==='T')T=[x,y];else if(c==='D')D=[x,y];}));
   const cv=$('#world');cv.width=grid[0].length*TS;cv.height=grid.length*TS;
   W={grid,cols:grid[0].length,rows:grid.length,T,D,doorOpen:false,solved:false,puzzleOpen:false,near:false,
-     px:P[0]+.5,py:P[1]+.5,face:[0,1],walk:0,moving:false,cv,ctx:cv.getContext('2d'),keys:{},pad:{},last:performance.now(),raf:0,t:0,hp:5,mhp:5,inv:0,cd:0,punchT:0,rage:0,raging:0,flash:0,kos:0,got:0,nb:0,bowls:[],bubbles:[],dist:null,wsHtml:'',rageTold:false,
+     px:P[0]+.5,py:P[1]+.5,face:[0,1],walk:0,moving:false,cv,ctx:cv.getContext('2d'),keys:{},pad:{},last:performance.now(),raf:0,t:0,hp:5,mhp:5,inv:0,cd:0,punchT:0,rage:0,raging:0,flash:0,kos:0,got:0,nb:0,bowls:[],bubbles:[],dist:null,wsHtml:'',rageTold:false,catT:6+Math.random()*6,
      guards:def.guards.map((g,gi)=>{
        const pts=g.pts.map(p=>[p[0]+.5,p[1]+.5]),i=g.start||0,dir=i===0?1:-1,nx=pts[i+dir];
        const dx=nx[0]-pts[i][0],dy=nx[1]-pts[i][1],d=Math.hypot(dx,dy)||1;
@@ -1458,7 +1663,8 @@ function updateWorld(dt){
   }
   for(const b of W.bowls){
     if(b.got||Math.hypot(W.px-b.x,W.py-b.y)>=0.6)continue;
-    b.got=true;W.got++;G.bowlDone[G.stage]=W.got;G.bowls++;ME.bowls++;saveLocal();sfx('pickup');
+    b.got=true;W.got++;G.bowlDone[G.stage]=W.got;G.bowls++;ME.bowls++;saveLocal();sfx('pickup');checkAch();bpAdd('bowls');
+    if(ME.wear.pet!=='none'&&Math.random()<.35)say('cat',rp(CAT_PICK),1.8);
     S.susp=Math.max(0,S.susp-12);updateMeter();
     if(rage&&W.hp<W.mhp)W.hp++;
     say('p',rp(PICKUP_QUIPS),2.2);
@@ -1467,6 +1673,7 @@ function updateWorld(dt){
   else if(m.timeScale===0&&S.susp>0){S.susp=Math.max(0,S.susp-6*dt);updateMeter();}
   const near=!W.solved&&Math.hypot(W.px-(W.T[0]+.5),W.py-(W.T[1]+.5))<1.8;
   if(near!==W.near){W.near=near;const b=$('#useBtn');if(b)b.disabled=!near;}
+  if(ME.wear.pet!=='none'&&G.mode!=='race'){W.catT-=dt;if(W.catT<=0){say('cat',rp(CAT_QUIPS),2.2);W.catT=14+Math.random()*10;}}
   updateWstat();
   if(W.doorOpen&&chAt(Math.floor(W.px),Math.floor(W.py))==='E'){clearStage();}
 }
@@ -1628,7 +1835,7 @@ function drawWorld(){
   // ข้อความลอย
   ctx.textAlign='left';ctx.textBaseline='middle';
   for(const b of W.bubbles){
-    const bx=b.o==='p'?W.px*TS:b.o.x*TS,by=b.o==='p'?W.py*TS-32:b.o.y*TS-38;
+    const bx=b.o==='p'?W.px*TS:b.o==='cat'?W.px*TS+26:b.o.x*TS,by=b.o==='p'?W.py*TS-32:b.o==='cat'?W.py*TS-20:b.o.y*TS-38;
     ctx.font='700 16px Sarabun,sans-serif';
     const tw=Math.min(ctx.measureText(b.text).width,W.cols*TS-28),w=tw+16,h=24;
     const x0=Math.max(4,Math.min(W.cols*TS-w-4,bx-w/2)),y0=Math.max(4,by-h);
@@ -1781,14 +1988,14 @@ function addSusp(n){
 function shake(){
   const c=$('#playcard');if(!c)return;
   c.classList.remove('shake');void c.offsetWidth;c.classList.add('shake');
-  sfx('wrong');
+  sfx('wrong');ME.cnt.wrong++;checkAch();bpAdd('wrong');
   const S=G.S;if(S&&S.msg&&Math.random()<.7)S.msg+=' · '+rp(WRONG_QUIPS);
 }
 
 /* ---------- ถูกจับ / จบเกม / ผ่าน / ชนะ ---------- */
 function caught(reason){
   if(G.screen!=='play')return;
-  stopTimer();G.screen='caught';G.caught++;ME.caught++;saveLocal();sfx('caught');
+  stopTimer();G.screen='caught';G.caught++;ME.caught++;saveLocal();sfx('caught');checkAch();bpAdd('caught');
   const m=mode();
   if(m.lives!==Infinity)G.lives--;
   const line=reason||pick(CAUGHT);
@@ -1811,7 +2018,7 @@ function gameOver(line){
   window.scrollTo(0,0);
 }
 function clearStage(){
-  stopTimer();
+  stopTimer();bpAdd('stages');
   if(G.mode==='race'){raceAdvance();return;}
   G.screen='clear';sfx('clear');
   const st=STAGES[G.stage],last=G.stage===TOTAL-1;
@@ -1823,7 +2030,7 @@ function clearStage(){
   window.scrollTo(0,0);
 }
 function win(){
-  stopTimer();G.screen='win';const firstWin=ME.wins===0,firstRage=G.mode==='rage'&&!ME.best.rage;recordWin();sfx('win');confetti();
+  stopTimer();G.screen='win';const firstWin=ME.wins===0,firstRage=G.mode==='rage'&&!ME.best.rage;recordWin();checkAch({win:true,mode:G.mode,time:G.playTime,caught:G.caught,bowls:G.bowls});bpAdd('wins');bpCheck({win:true,mode:G.mode,hints:G.hints});sfx('win');confetti();
   let newly=false;
   if(G.mode==='story'&&!unlocked){unlocked=true;newly=true;try{localStorage.setItem('iq300-unlocked','1');}catch(e){}}
   const others=ORDER.filter(id=>id!=='story'&&id!==G.mode).map(id=>
@@ -2015,7 +2222,7 @@ function useHint(){
   if(!W||!W.puzzleOpen){setGoal('ใบ้ใช้ได้ตอนเปิดแผงอยู่ เดินไปที่แผงก่อน');return;}
   const ok=[hintSeq,hintCam,hintKey,hintWires,hintMM][STAGES[G.stage].p]();
   if(!ok){S.msg='ตอนนี้ไม่มีใบ้เพิ่มให้แล้ว';renderStage();return;}
-  G.hints++;S.msg+=' · '+rp(HINT_QUIPS);
+  G.hints++;ME.cnt.hints++;checkAch();bpAdd('hints');S.msg+=' · '+rp(HINT_QUIPS);
   if(addSusp(mode().hint))return;
   renderStage();
 }
@@ -2034,7 +2241,7 @@ function normMe(j){
   j=j&&typeof j==='object'?j:{};const b=j.best&&typeof j.best==='object'?j.best:{};
   const nn=x=>{x=+x;return isFinite(x)&&x>0?Math.floor(x):0;};
   const best={};MODE_IDS.forEach(id=>{best[id]=numOk(b[id]);});
-  return {name:cleanName(j.name),wins:nn(j.wins),caught:nn(j.caught),best,raceBest:numOk(j.raceBest),racePlayed:nn(j.racePlayed),raceWins:nn(j.raceWins),kos:nn(j.kos),bowls:nn(j.bowls),spent:nn(j.spent),owned:normOwned(j.owned),wear:normWear(j.wear)};
+  return {name:cleanName(j.name),wins:nn(j.wins),caught:nn(j.caught),best,raceBest:numOk(j.raceBest),racePlayed:nn(j.racePlayed),raceWins:nn(j.raceWins),kos:nn(j.kos),bowls:nn(j.bowls),spent:nn(j.spent),owned:normOwned(j.owned),wear:normWear(j.wear),ach:normAch(j.ach),cnt:normCnt(j.cnt),bp:normBp(j.bp)};
 }
 function normOwned(a){
   const out=new Set();
@@ -2046,6 +2253,31 @@ function normWear(w){
   SLOTS.forEach(sl=>{o[sl[0]]=itemOf(sl[0],w[sl[0]])?w[sl[0]]:DEF_WEAR[sl[0]];});
   return o;
 }
+function normAch(a){
+  const out=new Set();
+  if(Array.isArray(a))a.forEach(k=>{if(typeof k==='string'&&ACH.some(x=>x.id===k))out.add(k);});
+  return Array.from(out).sort();
+}
+function normBp(b){
+  b=b&&typeof b==='object'?b:{};
+  const nn=x=>{x=+x;return isFinite(x)&&x>0?Math.min(Math.floor(x),1000000):0;};
+  const mk=o=>{o=o&&typeof o==='object'?o:{};const r={};BP_KEYS.forEach(k=>{r[k]=nn(o[k]);});return r;};
+  const ids=(a,list)=>Array.from(new Set((Array.isArray(a)?a:[]).filter(k=>typeof k==='string'&&list.some(m=>m.id===k)))).sort();
+  return {xp:nn(b.xp),lv:Math.min(BP_LV.length,nn(b.lv)),done:ids(b.done,BP_SEASON),day:/^\d{8}$/.test(String(b.day))?String(b.day):'',ddone:ids(b.ddone,BP_DAILY),c:mk(b.c),dc:mk(b.dc)};
+}
+function mergeBp(rb){
+  const lb=ME.bp;
+  lb.xp=Math.max(lb.xp,rb.xp);lb.lv=Math.max(lb.lv,rb.lv);
+  lb.done=Array.from(new Set(lb.done.concat(rb.done))).sort();
+  BP_KEYS.forEach(k=>{lb.c[k]=Math.max(lb.c[k],rb.c[k]);});
+  if(Number(rb.day)>Number(lb.day)){lb.day=rb.day;lb.ddone=rb.ddone.slice();lb.dc=Object.assign({},rb.dc);}
+  else if(rb.day===lb.day){lb.ddone=Array.from(new Set(lb.ddone.concat(rb.ddone))).sort();BP_KEYS.forEach(k=>{lb.dc[k]=Math.max(lb.dc[k],rb.dc[k]);});}
+}
+function normCnt(c){
+  c=c&&typeof c==='object'?c:{};const o={};
+  ['hints','wrong','swings','iq'].forEach(k=>{const v=+c[k];o[k]=isFinite(v)&&v>0?Math.min(Math.floor(v),1000000):0;});
+  return o;
+}
 const hasItem=(slot,id)=>{
   const it=itemOf(slot,id);if(!it)return false;
   if(it.lock==='win')return ME.wins>0;
@@ -2054,7 +2286,7 @@ const hasItem=(slot,id)=>{
 };
 const balance=()=>Math.max(0,ME.bowls-ME.spent);
 function exportOf(x){
-  const o={name:x.name,wins:x.wins,caught:x.caught,racePlayed:x.racePlayed,raceWins:x.raceWins,kos:x.kos,bowls:x.bowls,spent:x.spent,owned:x.owned.slice().sort(),wear:Object.assign({},x.wear),best:{}};
+  const o={name:x.name,wins:x.wins,caught:x.caught,racePlayed:x.racePlayed,raceWins:x.raceWins,kos:x.kos,bowls:x.bowls,spent:x.spent,owned:x.owned.slice().sort(),wear:Object.assign({},x.wear),ach:x.ach.slice().sort(),cnt:Object.assign({},x.cnt),bp:{xp:x.bp.xp,lv:x.bp.lv,done:x.bp.done.slice().sort(),day:x.bp.day,ddone:x.bp.ddone.slice().sort(),c:Object.assign({},x.bp.c),dc:Object.assign({},x.bp.dc)},best:{}};
   MODE_IDS.forEach(id=>{if(x.best[id])o.best[id]=x.best[id];});
   if(x.raceBest)o.raceBest=x.raceBest;
   return o;
@@ -2075,7 +2307,7 @@ function pushMe(){
 }
 function mergeRemote(r){
   if(!ME.name&&r.name)ME.name=r.name;
-  ME.wins=Math.max(ME.wins,r.wins);ME.caught=Math.max(ME.caught,r.caught);ME.kos=Math.max(ME.kos,r.kos);ME.bowls=Math.max(ME.bowls,r.bowls);ME.spent=Math.max(ME.spent,r.spent);ME.owned=normOwned(ME.owned.concat(r.owned));
+  ME.wins=Math.max(ME.wins,r.wins);ME.caught=Math.max(ME.caught,r.caught);ME.kos=Math.max(ME.kos,r.kos);ME.bowls=Math.max(ME.bowls,r.bowls);ME.spent=Math.max(ME.spent,r.spent);ME.owned=normOwned(ME.owned.concat(r.owned));ME.ach=normAch(ME.ach.concat(r.ach));Object.keys(ME.cnt).forEach(k=>{ME.cnt[k]=Math.max(ME.cnt[k],r.cnt[k]||0);});mergeBp(r.bp);
   if(JSON.stringify(ME.wear)===JSON.stringify(DEF_WEAR))ME.wear=Object.assign({},r.wear);
   ME.racePlayed=Math.max(ME.racePlayed,r.racePlayed);ME.raceWins=Math.max(ME.raceWins,r.raceWins);
   MODE_IDS.forEach(id=>{ME.best[id]=minN(ME.best[id],r.best[id]);});
@@ -2109,7 +2341,9 @@ function myStatsHtml(){
    +'<div><span class="muted small">แข่งออนไลน์ดีที่สุด</span><b>'+(ME.raceBest?fmtMs(ME.raceBest):'-')+'</b></div>'
    +'<div><span class="muted small">ยามที่ต่อยสลบ</span><b>'+ME.kos+'</b></div>'
    +'<div><span class="muted small">ชามก๋วยเตี๋ยวในกระเป๋า</span><b>'+balance()+'</b></div>'
-   +'<div><span class="muted small">ก๋วยเตี๋ยวที่เก็บทั้งหมด</span><b>'+ME.bowls+'</b></div>';
+   +'<div><span class="muted small">ก๋วยเตี๋ยวที่เก็บทั้งหมด</span><b>'+ME.bowls+'</b></div>'
+   +'<div><span class="muted small">เหรียญความสำเร็จ</span><b>'+ME.ach.length+'/'+ACH.length+'</b></div>'
+   +'<div><span class="muted small">บัตรผ่าน</span><b>เลเวล '+ME.bp.lv+'</b></div>';
 }
 function nameForm(id){
   return '<form data-form="name" data-input="'+id+'" class="row"><label class="sr" for="'+id+'">ชื่อผู้เล่น</label>'
@@ -2128,7 +2362,7 @@ function playerSection(){
    +nameForm('pname')
    +'<p class="muted small" id="svcstat" role="status" style="margin:10px 0"></p>'
    +'<div class="stats" id="mystats">'+myStatsHtml()+'</div>'
-   +'<div class="actions"><button class="btn primary" data-act="board">ลีดเดอร์บอร์ด</button><button class="btn" data-act="race">แข่งออนไลน์กับเพื่อน</button><button class="btn" data-act="wardrobe">ห้องแต่งตัว</button></div>'
+   +'<div class="actions"><button class="btn primary" data-act="board">ลีดเดอร์บอร์ด</button><button class="btn" data-act="race">แข่งออนไลน์กับเพื่อน</button><button class="btn" data-act="wardrobe">ห้องแต่งตัว</button><button class="btn" data-act="pass">บัตรผ่าน (เลเวล '+ME.bp.lv+')</button><button class="btn" data-act="ach">เหรียญความสำเร็จ</button></div>'
    +'</div></section>';
 }
 async function initServices(){
@@ -2309,7 +2543,7 @@ function finishRace(){
   raceSend({stage:TOTAL,done:true,ms:R.ms});
   ME.racePlayed++;ME.bowls+=5;ME.raceBest=minN(ME.raceBest,R.ms);
   pushMe();
-  sfx('win');confetti();
+  sfx('win');confetti();checkAch();bpAdd('race');
   maybeCountWin();renderRaceResult();
 }
 function maybeCountWin(){
@@ -2317,7 +2551,7 @@ function maybeCountWin(){
   const rs=raceRacers();
   if(rs.length>=2&&rs.every(r=>r.done)){
     R.countedWin=true;
-    if(rs[0].me){ME.raceWins++;pushMe();}
+    if(rs[0].me){ME.raceWins++;pushMe();checkAch();}
   }
 }
 function renderRaceResult(){
@@ -2389,7 +2623,7 @@ function wdWear(){
     if(it.lock||balance()<it.price)return;
     ME.spent+=it.price;ME.owned=normOwned(ME.owned.concat([slot+':'+it.id]));sfx('solve');
   }else sfx('pickup');
-  ME.wear[slot]=it.id;saveLocal();pushMe();showWardrobe(true);
+  ME.wear[slot]=it.id;saveLocal();pushMe();checkAch();showWardrobe(true);
 }
 
 /* ---------- ฉากสุดท้าย: ร้านก๋วยเตี๋ยวป้าติ๋ม ---------- */
@@ -2433,6 +2667,7 @@ function finScript(){
   S.push({k:'talk',who:'ป้าติ๋ม',text:OUT_QUIPS[wr.outfit]||OUT_QUIPS.gown});
   const ex=EXTRA_QUIPS[wr.hat]||EXTRA_QUIPS[wr.face]||EXTRA_QUIPS[wr.aura];
   if(ex)S.push({k:'talk',who:'ป้าติ๋ม',text:ex});
+  if(wr.pet&&wr.pet!=='none'){S.push({k:'talk',who:'ป้าติ๋ม',text:'แมวบนไหล่หนูหิวหรือเปล่า เดี๋ยวป้าแบ่งปลาทูให้ตัวนึง'});S.push({k:'talk',who:'แมว',text:'เมี้ยว (แปลว่า เอาสองตัว)'});}
   S.push({k:'talk',who:'ธี',text:'ป้าครับ ผมหนีมาสิบห้าด่านเพื่อมาพิสูจน์เรื่องเดียว ชามนี้ใส่น้ำตาลเกินสูตรเดิมอยู่ 3.7 เปอร์เซ็นต์ และผมจะกินให้ดู'});
   S.push({k:'talk',who:'ป้าติ๋ม',text:'ป้าทำก๋วยเตี๋ยวมายี่สิบปี ไม่เคยเกินสูตร เอาป้ายสูตรมานี่ ดูกันให้เห็นกับตา'});
   S.push({k:'bowl',text:'ป้าติ๋มยกชามเส้นเล็กน้ำใสมาวางตรงหน้า ควันกรุ่นขึ้นมา ข้างชามมีป้ายสูตรของป้าวางอยู่'});
@@ -2641,6 +2876,44 @@ document.addEventListener('keydown',e=>{
   if(G.screen==='finale'&&(e.code==='Enter'||e.code==='Space')&&!(e.target&&e.target.closest&&e.target.closest('button'))){e.preventDefault();finNext();}
 });
 
+
+
+function showPass(){
+  stopTimer();G.screen='pass';bpRoll();
+  const bp=ME.bp,lv=bp.lv,max=BP_LV.length;
+  const base=lv?bpNeed(lv):0,nx=lv<max?bpNeed(lv+1):base;
+  const pct=lv>=max?100:Math.max(0,Math.min(100,Math.round((bp.xp-base)/(nx-base)*100)));
+  const card=(m,cnt,done,tag)=>'<li class="ach'+(done?' got':'')+'"><b>'+esc(m.name)+'</b><span class="st">'
+    +(done?'สำเร็จแล้ว +'+m.xp+' XP':(m.k?Math.min(cnt,m.t)+'/'+m.t+' · ':'ภารกิจพิเศษ · ')+'รางวัล +'+m.xp+' XP')+'</span></li>';
+  const dl=bpDaily().map(m=>card(m,bp.dc[m.k],bp.ddone.includes(m.id))).join('');
+  const sl=BP_SEASON.map(m=>card(m,m.k?bp.c[m.k]:0,bp.done.includes(m.id))).join('');
+  const tl=BP_LV.map((r,i)=>{const L=i+1,got=lv>=L;return '<li class="ach'+(got?' got':'')+'"><b>เลเวล '+L+'</b><span>'+esc(bpRewardText(r))+'</span><span class="st">'+(got?'ได้แล้ว':'ต้องใช้ '+bpNeed(L)+' XP')+'</span></li>';}).join('');
+  main.innerHTML='<div class="topbar"><div class="who"><span class="hn">บัตรผ่านซีซัน 1</span>แผนหนีโรงบาลฉบับรางวัลเยอะ</div><div class="meta"><span class="bal">ชามก๋วยเตี๋ยวในกระเป๋า <b class="mono">'+balance()+'</b></span><button class="btn-link" data-act="home">หน้าแรก</button></div></div>'
+   +'<section class="folder"><div class="ftab">เลเวลของคุณ</div><div class="card">'
+   +'<p class="lvbig" style="margin:0">เลเวล '+lv+' / '+max+'</p>'
+   +'<div class="xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'" aria-label="ความคืบหน้าไปเลเวลถัดไป"><i style="width:'+pct+'%"></i></div>'
+   +'<p class="muted small" style="margin:0">'+(lv>=max?'เก็บครบทุกเลเวลแล้ว ยินดีด้วย':'XP '+bp.xp+' · ต้องมี '+bpNeed(lv+1)+' XP เพื่อไปเลเวล '+(lv+1))+' · รางวัลเข้ากระเป๋าให้อัตโนมัติเมื่อขึ้นเลเวล</p></div></section>'
+   +'<section class="folder"><div class="ftab">ภารกิจประจำวัน · เปลี่ยนทุกวัน</div><div class="card"><ul class="achs" style="margin:0">'+dl+'</ul></div></section>'
+   +'<section class="folder"><div class="ftab">ภารกิจประจำซีซัน</div><div class="card"><ul class="achs" style="margin:0">'+sl+'</ul></div></section>'
+   +'<section class="folder"><div class="ftab">เส้นทางรางวัล</div><div class="card"><ul class="achs" style="margin:0">'+tl+'</ul></div></section>';
+  window.scrollTo(0,0);
+}
+function showAch(){
+  stopTimer();G.screen='ach';
+  const items=ACH.map(a=>{
+    const got=ME.ach.includes(a.id),hid=a.secret&&!got;
+    let st;
+    if(got)st='ได้แล้ว +'+a.r+' ชาม';
+    else if(a.p){const v=a.p();st=hid?'เหรียญลับ':Math.min(v[0],v[1])+'/'+v[1]+' · รางวัล +'+a.r+' ชาม';}
+    else st='ทำภารกิจพิเศษ · รางวัล +'+a.r+' ชาม';
+    return '<li class="ach'+(got?' got':'')+'"><b>'+(hid?'???':esc(a.name))+'</b><span>'+esc(a.desc)+'</span><span class="st">'+st+'</span>'+(got?'<span class="fun">'+esc(a.fun)+'</span>':'')+'</li>';
+  }).join('');
+  main.innerHTML='<div class="topbar"><div class="who"><span class="hn">เหรียญความสำเร็จ</span>ของคนไข้ห้อง 407</div><div class="meta"><button class="btn-link" data-act="home">หน้าแรก</button></div></div>'
+   +'<section class="folder"><div class="ftab">ได้แล้ว '+ME.ach.length+' จาก '+ACH.length+' เหรียญ</div><div class="card">'
+   +'<p class="muted small" style="margin:0">ทุกเหรียญให้ชามก๋วยเตี๋ยวเป็นรางวัล เอาไปซื้อชุดหรือแมวที่ห้องแต่งตัวได้</p>'
+   +'<ul class="achs">'+items+'</ul></div></section>';
+  window.scrollTo(0,0);
+}
 const ACT={
   begin:b=>startMode(b.dataset.mode),
   go:()=>beginStage(),
@@ -2676,10 +2949,12 @@ const ACT={
   'wd-slot':b=>{WD.slot=b.dataset.s;showWardrobe(true);},
   'wd-pick':b=>{WD.pre[WD.slot]=b.dataset.id;showWardrobe(true);},
   'wd-wear':()=>wdWear(),
+  ach:()=>showAch(),
+  pass:()=>showPass(),
   'fin-next':()=>finNext(),
   'fin-ans':b=>finAns(Number(b.dataset.i)),
   'fin-skip':()=>{cancelAnimationFrame(FIN.raf);win();},
-  iq:()=>{const e=$('#iqmsg');iqN=(iqN+1)%IQ_LINES.length;if(e)e.textContent=IQ_LINES[iqN];sfx('pickup');}
+  iq:()=>{const e=$('#iqmsg');iqN=(iqN+1)%IQ_LINES.length;if(e)e.textContent=IQ_LINES[iqN];sfx('pickup');ME.cnt.iq++;checkAch();}
 };
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');
