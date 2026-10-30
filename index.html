@@ -2468,7 +2468,7 @@ function playerSection(){
    +nameForm('pname')
    +'<p class="muted small" id="svcstat" role="status" style="margin:10px 0"></p>'
    +'<div class="stats" id="mystats">'+myStatsHtml()+'</div>'
-   +'<div class="actions"><button class="btn primary" data-act="board">ลีดเดอร์บอร์ด</button><button class="btn" data-act="race">แข่งออนไลน์กับเพื่อน</button><button class="btn" data-act="wardrobe">ห้องแต่งตัว</button><button class="btn" data-act="pass">บัตรผ่าน (เลเวล '+ME.bp.lv+')</button><button class="btn" data-act="ach">เหรียญความสำเร็จ</button></div>'
+   +'<div class="actions"><button class="btn primary" data-act="board">ลีดเดอร์บอร์ด</button><button class="btn" data-act="race">แข่งออนไลน์กับเพื่อน'+(isMobile()?'':' (เฉพาะมือถือ)')+'</button><button class="btn" data-act="wardrobe">ห้องแต่งตัว</button><button class="btn" data-act="pass">บัตรผ่าน (เลเวล '+ME.bp.lv+')</button><button class="btn" data-act="ach">เหรียญความสำเร็จ</button></div>'
    +'</div></section>';
 }
 async function initServices(){
@@ -2526,9 +2526,24 @@ function showBoard(keepScroll){
 /* ---------- แข่งออนไลน์ ---------- */
 const CODE_CH='abcdefghjkmnpqrstuvwxyz23456789';
 const randCode=()=>Array.from({length:4},()=>CODE_CH[Math.floor(Math.random()*CODE_CH.length)]).join('');
+function isMobile(){
+  try{
+    if(/Android|iPhone|iPad|iPod|Mobile|HarmonyOS/i.test(navigator.userAgent||''))return true;
+    return (navigator.maxTouchPoints||0)>1&&!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
+  }catch(e){return false;}
+}
 function raceSend(p){const R=G.race;if(R&&R.room)Promise.resolve(R.room.presence(p)).catch(()=>{});}
 function showRace(){
   stopTimer();
+  if(!isMobile()){
+    G.screen='racelobby';
+    main.innerHTML='<div class="topbar"><div class="who"><span class="hn">แข่งออนไลน์</span>ใครหนีเร็วกว่ากัน</div><div class="meta"><button class="btn-link" data-act="home">หน้าแรก</button></div></div>'
+     +'<section class="folder"><div class="ftab">ห้องแข่ง · เฉพาะมือถือ</div><div class="card"><h2 class="h">ห้องแข่งเปิดเฉพาะผู้เล่นบนมือถือ</h2>'
+     +'<p class="story">ทุกคนในห้องต้องเดินด้วยปุ่มบนจอสัมผัสเหมือนกัน การแข่งจะได้แฟร์ เพราะคีย์บอร์ดเดินคล่องกว่ามาก เปิดเกมนี้จากมือถือหรือแท็บเล็ต แล้วกลับมากดแข่งออนไลน์อีกครั้ง</p>'
+     +'<p class="muted small">เครื่องนี้ยังเล่นคนเดียวและดูลีดเดอร์บอร์ดได้ตามปกติ</p>'
+     +'<div class="actions"><button class="btn primary" data-act="home">กลับหน้าแรก</button></div></div></section>';
+    window.scrollTo(0,0);return;
+  }
   if(G.race){showRaceRoom();return;}
   G.screen='racelobby';
   const ok=!!SVC.room;
@@ -2536,6 +2551,7 @@ function showRace(){
    +'<section class="folder"><div class="ftab">ห้องแข่ง</div><div class="card">'
    +'<p class="story">ทุกคนในห้องได้โจทย์ชุดเดียวกันและแผนที่เดียวกัน ใครหนีผ่านทั้ง 15 ด่านเร็วที่สุดชนะ เพื่อนต้องเปิดหน้าเดียวกันนี้ในเวลาเดียวกัน</p>'
    +'<p class="muted small" id="svcstat" role="status"></p>'
+   +'<p class="notice" role="note">ห้องนี้เปิดเฉพาะผู้เล่นบนมือถือ ทุกคนใช้ปุ่มเดินบนจอสัมผัสเหมือนกัน</p>'
    +'<h3>ชื่อของคุณ</h3>'+nameForm('rname')
    +'<div class="cols" style="margin-top:18px"><div><h3>สร้างห้องใหม่</h3><p class="muted small" style="margin:0 0 10px">ระบบสร้างรหัสให้ แล้วบอกรหัสกับเพื่อน</p><button class="btn primary" data-act="race-create">สร้างห้อง</button></div>'
    +'<div><h3>เข้าห้องของเพื่อน</h3><form data-form="racejoin" class="row"><label class="sr" for="racecode">รหัสห้อง</label><input class="field" id="racecode" type="text" maxlength="8" autocomplete="off" autocapitalize="characters" placeholder="รหัสห้อง" style="width:min(100%,9rem);font-family:var(--font-mono);text-transform:uppercase"><button class="btn" type="submit">เข้าห้อง</button></form></div></div>'
@@ -2549,6 +2565,7 @@ function raceName(){
   return SVC.guestName;
 }
 async function raceJoin(code,create){
+  if(!isMobile()){raceMsg('ห้องแข่งเปิดเฉพาะผู้เล่นบนมือถือ');return;}
   code=String(code||'').toLowerCase().replace(/[^a-z0-9]/g,'');
   if(code.length<3){raceMsg('กรอกรหัสห้องอย่างน้อย 3 ตัวอักษร');return;}
   const inp=$('#rname'),typed=inp?cleanName(inp.value):'';
@@ -2563,11 +2580,11 @@ async function raceJoin(code,create){
     if(SVC.room.noLobby){raceMsg('เชื่อมต่อห้องไม่สำเร็จ ลองกดอีกครั้ง หรือตรวจว่าเปิด Realtime ของ Supabase แล้ว');return;}
     const L=SVC.room;
     room={presence:p=>L.presence(p),peers:()=>L.peers(),onPeers:h=>L.onPeers(h),
-      leave:async()=>{await L.presence({code:null,name:null,round:null,stage:null,done:null,ms:null,go:null});}};
+      leave:async()=>{await L.presence({code:null,name:null,round:null,stage:null,done:null,ms:null,go:null,mob:null});}};
   }
   const R=G.race={code,room,go:0,seenGo:null,joinedAt:Date.now(),peers:[],t0:0,ms:null,cd:0,countedWin:false,unsub:null};
   R.unsub=room.onPeers(racePeers);
-  raceSend({code,name:raceName(),round:0,stage:0,done:false});
+  raceSend({code,name:raceName(),round:0,stage:0,done:false,mob:1});
   showRaceRoom();
 }
 function roomPlayers(){
@@ -2589,7 +2606,7 @@ function showRaceRoom(){
 }
 function racePeers(ch){
   const R=G.race;if(!R)return;
-  R.peers=ch.peers.filter(p=>p.presence&&p.presence.code===R.code);
+  R.peers=ch.peers.filter(p=>p.presence&&p.presence.code===R.code&&p.presence.mob===1);
   let max=0;R.peers.forEach(p=>{const g=p.presence&&p.presence.go;if(typeof g==='number'&&isFinite(g)&&g>max)max=g;});
   if(Date.now()-R.joinedAt<2500||R.seenGo===null){R.seenGo=Math.max(R.seenGo||0,max);}
   else if(max>R.seenGo){R.seenGo=max;raceSend({round:max,stage:0,done:false,ms:null});startCountdown(max);return;}
