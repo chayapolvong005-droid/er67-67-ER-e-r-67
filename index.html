@@ -250,6 +250,37 @@ ul.camrules li{margin-bottom:2px}
 .roomcode{font-family:var(--font-mono);font-size:clamp(2rem,10vw,3.4rem);letter-spacing:.3em;font-weight:600;background:var(--ctrl);padding:6px 16px;display:inline-block}
 .roomlist{list-style:none;margin:8px 0 14px;padding:0;display:flex;flex-direction:column;gap:6px}
 .roomlist li{padding:8px 12px;background:var(--ctrl);display:flex;justify-content:space-between;gap:10px}
+
+/* ---------- ห้องโถงพยาบาล / ห้องเล่นกับเพื่อน / แชต ---------- */
+.bigplay{display:flex;margin:14px 0 4px}
+.btn.big{font-family:var(--font-display);font-size:clamp(1.6rem,6vw,2.4rem);padding:16px 48px;letter-spacing:.04em;min-width:min(100%,17rem);min-height:64px}
+.modechips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 4px}
+.chip{border:2px solid var(--ink);background:var(--paper);color:var(--ink);padding:8px 14px;border-radius:2px;font-weight:600;min-height:44px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.chip:disabled{border-style:dashed;opacity:.55}
+.wards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:10px}
+.ward{display:flex;flex-direction:column;gap:2px;text-align:left;border:2px solid var(--ink);background:var(--paper);color:var(--ink);padding:12px;border-radius:2px;min-height:64px}
+.ward b{font-family:var(--font-display);font-size:1.35rem;line-height:1.3}
+.ward span{font-size:.82rem;color:var(--muted)}
+.ward:disabled{opacity:.55;border-style:dashed}
+.ward:hover:not(:disabled){background:var(--ctrl)}
+.chat{display:flex;flex-direction:column;gap:8px;min-width:0}
+.clog{border:1px solid var(--line);background:var(--ctrl);height:12rem;overflow-y:auto;padding:8px 10px;font-size:.95rem;display:flex;flex-direction:column;gap:3px}
+.clog p{margin:0;overflow-wrap:anywhere}
+.clog .me b{color:var(--ok)}
+.clog .hid{color:var(--muted);font-style:italic}
+.chat .row .field{flex:1;min-width:0;width:auto}
+.chatsheet{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--paper);border-top:3px solid var(--ink);padding:8px 12px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -6px 18px rgba(0,0,0,.25)}
+.chatsheet[hidden]{display:none}
+.chatsheet .sheethead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.chatsheet .clog{height:min(9rem,26vh)}
+.cbadge{font-weight:700}
+.chatbig{min-height:56px;padding:10px 26px;font-size:1.2rem;font-weight:700;background:#ffd23f;color:#15201a;border-color:#15201a;flex:1 1 9rem}
+.chatbtn{min-height:44px;padding:6px 14px;font-weight:700;background:#ffd23f;color:#15201a;border-color:#15201a}
+.chatbig.new,.chatbtn.new{background:#ff5a3c;color:#fff;animation:chatpulse 1s ease-in-out infinite}
+@keyframes chatpulse{50%{box-shadow:0 0 0 7px rgba(255,90,60,.4)}}
+@media (prefers-reduced-motion:reduce){.chatbig.new,.chatbtn.new{animation:none}}
+@media (orientation:landscape) and (max-height:540px){.chatsheet{left:auto;width:min(100%,26rem);right:0}.chatsheet .clog{height:min(6rem,24vh)}}
 /* ---------- ลูกเล่น / โหมดคลั่ง ---------- */
 .wstat{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;margin:0 0 8px;font-size:.9rem;font-weight:600;min-height:1.65em}
 .hp{display:inline-flex;gap:3px;vertical-align:middle}
@@ -372,6 +403,7 @@ ul.camrules li{margin-bottom:2px}
   #playcard .ticker{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:1.3em;margin:0 0 4px}
   #playcard .acts .btn{flex:1 1 calc(50% - 6px);min-width:0;min-height:38px;padding:4px 6px;font-size:.82rem}
   #playcard .acts #useBtn{flex-basis:100%}
+  #playcard .acts .chatbig{flex-basis:100%;min-height:44px;font-size:1rem}
   #playcard .ctrls #punchBtn,#playcard .ctrls #rageBtn{min-height:38px;min-width:0}
   #puzzlebox{grid-column:1/3}
   .steps{display:none}
@@ -1886,7 +1918,7 @@ function loop(now){
   const dt=Math.min((now-W.last)/1000,0.05);W.last=now;W.t+=dt;
   if(!W.puzzleOpen)updateWorld(dt);
   if(G.screen!=='play'||W!==w0)return;
-  drawWorld();
+  posTick(dt);drawWorld();
   W.raf=requestAnimationFrame(loop);
 }
 function updateWorld(dt){
@@ -1980,6 +2012,7 @@ function solved(){
 const KEYMAP={ArrowUp:'u',KeyW:'u',ArrowDown:'d',KeyS:'d',ArrowLeft:'l',KeyA:'l',ArrowRight:'r',KeyD:'r'};
 document.addEventListener('keydown',e=>{
   if(!W||G.screen!=='play')return;
+  if(e.target&&e.target.matches&&e.target.matches('input,textarea'))return;
   if(e.code==='Escape'&&W.puzzleOpen){closePuzzle();return;}
   if(W.puzzleOpen)return;
   const k=KEYMAP[e.code];
@@ -2087,6 +2120,7 @@ function drawWorld(){
     if(g.sees||g.alert){ctx.fillStyle=g.alert?'#ff8a1f':'#ff3b2e';ctx.font='700 20px Sarabun,sans-serif';ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillText('!',x,y-31);}
   }
   drawProj(ctx);
+  drawGhosts(ctx);
   // ผู้เล่น
   const x=W.px*TS,y=W.py*TS,sw=W.moving?Math.sin(W.walk*14)*4:0;
   ctx.save();
@@ -2144,23 +2178,17 @@ function topbar(extraDone){
   const steps=Array.from({length:TOTAL},(_,i)=>'<i class="'+(i<done?'done':i===G.stage&&!extraDone?'cur':'')+'"></i>').join('');
   return '<div class="topbar"><div class="who"><span class="hn">แฟ้ม 0300</span>ธีรภัทร์ สมองเพชร</div>'
     +'<div class="meta"><span class="badge">'+m.name+'</span><span>โอกาส '+lives+'</span><span>ถูกจับ <b class="mono">'+G.caught+'</b></span>'
-    +sndBtn()+'<button class="btn-link" data-act="home">หน้าแรก</button></div>'
+    +sndBtn()+chatBtn()+'<button class="btn-link" data-act="home">หน้าแรก</button></div>'
     +'<div class="steps" role="img" aria-label="'+(G.stage>=TOTAL?'ด่านบอส':'ด่านที่ '+(G.stage+1)+' จาก '+TOTAL)+'">'+steps+'</div></div>';
 }
 
 /* ---------- หน้าแรก ---------- */
 function showHome(){
   stopTimer();if(G.race)leaveRace();G.screen='home';G.S=null;
-  const modes=ORDER.map(id=>{
-    const m=MODES[id],locked=id!=='story'&&!unlocked;
-    return '<button class="mode'+(locked?' locked':'')+'" data-act="begin" data-mode="'+id+'"'+(locked?' disabled':'')+'>'
-      +'<span class="mname">'+m.name+'</span><span class="mdesc">'+m.desc+'</span>'
-      +'<span class="mstate">'+(locked?'ล็อก · หนีสำเร็จในโหมดปกติก่อน':id==='story'?'เริ่มได้เลย':'ปลดล็อกแล้ว')+'</span></button>';
-  }).join('');
   main.innerHTML=
    '<header class="hero"><p class="eyebrow mono">โรงพยาบาลสวนสติหลุด · ตึก 4 · ห้อง 407</p>'
   +'<h1>IQ 300 แหกโรงบาล</h1>'
-  +'<p class="lede">คุณคือคนไข้ที่ฉลาดที่สุดในตึก และเป็นคนเดียวที่ไม่มีใครเชื่อ</p><p class="notice" role="note">'+esc(rp(ANNOUNCE))+'</p><div>'+sndBtn()+'</div></header>'
+  +'<p class="lede">คุณคือคนไข้ที่ฉลาดที่สุดในตึก และเป็นคนเดียวที่ไม่มีใครเชื่อ</p><p class="notice" role="note">'+esc(rp(ANNOUNCE))+'</p><div class="bigplay"><button class="btn primary big" data-act="hall">▶ เล่น</button></div><div>'+sndBtn()+'</div></header>'
   +'<div class="cols">'
   +'<section class="folder"><div class="ftab">แฟ้มผู้ป่วยใน</div><div class="card"><dl class="profile">'
   +'<div><dt>ชื่อ</dt><dd>ธีรภัทร์ สมองเพชร (เรียกกันว่า "ธี")</dd></div>'
@@ -2179,18 +2207,18 @@ function showHome(){
   +'<div><dt>ลูกเล่น</dt><dd>เก็บชามก๋วยเตี๋ยวในแผนที่เพื่อลดความสงสัยของยาม ชามนี้คือเงินของเกม เอาไปซื้อชุดเท่ๆ ที่ห้องแต่งตัว ฟังมุกของยามและธี และเปิดหรือปิดเสียงได้ที่ปุ่มเสียง</dd></div>'
   +'</dl></div></section></div>'
   +'<section class="mission"><span class="lbl">ภารกิจ</span><p>หนีออกจากโรงพยาบาลให้ได้ในคืนนี้ ฝ่าอุปสรรคทั้ง 15 ด่าน แล้ววิ่งไปให้ถึงร้านก๋วยเตี๋ยวป้าติ๋มก่อนร้านปิดสี่ทุ่ม เพื่อพิสูจน์ว่าคุณคำนวณถูก และกินชามนั้นให้ได้</p></section>'
-  +'<section class="folder"><div class="ftab">เลือกโหมด</div><div class="card"><div class="modes">'+modes+'</div></div></section>'
   +playerSection();
   refreshSvcUi();window.scrollTo(0,0);
 }
 
 /* ---------- เริ่มเกม / ฉากเกริ่นแต่ละครั้ง ---------- */
 function startMode(id){
+  if(G.race){G.race.coop=false;setSc('idle');}
   G.mode=id;G.stage=0;G.lives=MODES[id].lives;G.caught=0;G.hints=0;G.playTime=0;G.kos=0;G.bowls=0;G.bowlDone={};
   brief();
 }
 function brief(){
-  stopTimer();G.screen='brief';G.S=null;
+  stopTimer();G.screen='brief';setSc('idle');G.S=null;
   const st=STAGES[G.stage],m=mode();
   const timeLine=m.timeScale>0
     ?'ยามจะมาถึงในประมาณ <b>'+Math.round(BASE[G.stage]*m.timeScale)+' วินาที</b> ถ้าคุณไม่ตอบผิดหรือขอใบ้'
@@ -2208,7 +2236,7 @@ function beginStage(){
   const m=mode(),i=G.stage;
   const S={susp:0,msg:''};
   G.S=S;
-  if(G.mode==='race')seedRng(G.race.code+':'+i+':'+G.race.go);
+  if(G.race&&(G.mode==='race'||G.race.coop))seedRng(G.race.code+':'+G.mode+':'+i+':'+G.race.go);
   const pt=STAGES[i].p;
   if(pt===0){S.seq={items:genSeqs(m.seq),cur:0};}
   if(pt===1){S.cam=genCam(m.cam);S.sel=null;S.out=new Set();}
@@ -2217,6 +2245,7 @@ function beginStage(){
   if(pt===4){S.mm=genCode(m.code);S.mm.hist=[];S.mm.cur=[];S.mm.excl=new Set();}
   unseedRng();
   G.screen='play';
+  if(G.race&&(G.race.coop||G.mode==='race')){raceSend({stage:Math.min(G.stage,TOTAL),done:false});setSc('play');}
   main.innerHTML=topbar()+raceHud()
   +'<section class="folder"><div class="ftab">'+stageTag(i)+' · '+STAGES[i].title+'</div><div class="card" id="playcard">'
   +'<div class="meter-wrap"><div class="mrow"><span>ความสงสัยของยาม</span><b class="mono" id="mnum">0%</b></div>'
@@ -2226,7 +2255,7 @@ function beginStage(){
   +'<div id="worldbox">'+(G.mode==='race'?'':'<div class="wstat" id="wstat"></div>')+'<div class="canvaswrap"><canvas id="world" role="img" aria-label="แผนที่โรงพยาบาลมองจากด้านบน"></canvas></div><p class="ticker" id="ticker"></p>'
   +'<div class="ctrls"><div class="dpad"><button class="u" data-dir="u" aria-label="เดินขึ้น">▲</button><button class="l" data-dir="l" aria-label="เดินซ้าย">◀</button><button class="d" data-dir="d" aria-label="เดินลง">▼</button><button class="r" data-dir="r" aria-label="เดินขวา">▶</button></div>'
   +'<p class="muted small kb">'+(G.mode==='rage'?'เดิน: ลูกศรหรือ WASD · ใช้แผง: E · ต่อย: Space หรือ F · คลั่ง: R':'เดิน: ลูกศรหรือ WASD · ใช้แผง: E')+'</p>'
-  +'<div class="acts"><button class="btn primary" id="useBtn" data-act="use" disabled>ใช้แผง (E)</button>'+(G.mode==='rage'?'<button class="btn" id="punchBtn" data-act="punch">ต่อย (F)</button><button class="btn" id="rageBtn" data-act="rage" disabled>คลั่ง! (R)</button>':'')+'</div></div></div>'
+  +'<div class="acts"><button class="btn primary" id="useBtn" data-act="use" disabled>ใช้แผง (E)</button>'+(G.mode==='rage'?'<button class="btn" id="punchBtn" data-act="punch">ต่อย (F)</button><button class="btn" id="rageBtn" data-act="rage" disabled>คลั่ง! (R)</button>':'')+(G.race?'<button class="btn chatbig'+(G.race.unread?' new':'')+'" id="chatBigBtn" data-act="chat-toggle">💬 แชต<span class="cbadge">'+(G.race.unread?' ('+G.race.unread+')':'')+'</span></button>':'')+'</div></div></div>'
   +'<div id="puzzlebox" hidden><div class="pz-head"><b>หน้าจอแผง</b><button class="btn ghost" data-act="close-puzzle">ถอยออกมา (Esc)</button></div><div id="stagebody"></div></div>'
   +'<div class="foot"><button class="btn ghost" data-act="hint">ขอใบ้ (ความสงสัย +'+m.hint+'%)</button></div></div></section>';
   renderStage();updateMeter();startTimer();initWorld();updBpLine();
@@ -2274,7 +2303,7 @@ function shake(){
 /* ---------- ถูกจับ / จบเกม / ผ่าน / ชนะ ---------- */
 function caught(reason){
   if(G.screen!=='play')return;
-  stopTimer();G.screen='caught';G.caught++;ME.caught++;saveLocal();sfx('caught');checkAch();bpAdd('caught');
+  stopTimer();G.screen='caught';setSc('idle');G.caught++;ME.caught++;saveLocal();sfx('caught');checkAch();bpAdd('caught');
   const m=mode();
   if(m.lives!==Infinity)G.lives--;
   const line=reason||pick(CAUGHT);
@@ -2288,7 +2317,7 @@ function caught(reason){
   window.scrollTo(0,0);
 }
 function gameOver(line){
-  G.screen='over';
+  G.screen='over';setSc('idle');
   main.innerHTML=topbar()
   +'<section class="folder"><div class="ftab">โอกาสหมด</div><div class="card result">'
   +'<span class="stamp">จบเกม</span><p class="lead">'+line+'</p>'
@@ -2299,7 +2328,7 @@ function gameOver(line){
 function clearStage(){
   stopTimer();bpAdd('stages');
   if(G.mode==='race'){raceAdvance();return;}
-  G.screen='clear';sfx('clear');
+  G.screen='clear';setSc('idle');sfx('clear');
   const st=STAGES[G.stage],last=G.mode==='rage'?G.stage===TOTAL:G.stage===TOTAL-1,toBoss=G.mode==='rage'&&G.stage===TOTAL-1;
   main.innerHTML=topbar(1)
   +'<section class="folder"><div class="ftab">'+(G.stage>=TOTAL?'ด่านบอส':'ด่านที่ '+(G.stage+1))+' · สำเร็จ</div><div class="card result">'
@@ -2309,7 +2338,7 @@ function clearStage(){
   window.scrollTo(0,0);
 }
 function win(){
-  stopTimer();G.screen='win';const firstWin=ME.wins===0,firstRage=G.mode==='rage'&&!ME.best.rage;recordWin();checkAch({win:true,mode:G.mode,time:G.playTime,caught:G.caught,bowls:G.bowls});bpAdd('wins');if(!G.hints)bpAdd('winnh');if(G.mode==='rage')bpAdd('winrage');if(['hard','insane','hell'].indexOf(G.mode)>=0)bpAdd('winhard');sfx('win');confetti();
+  stopTimer();G.screen='win';if(G.race&&G.race.coop){raceSend({stage:TOTAL,done:true});}setSc('idle');const firstWin=ME.wins===0,firstRage=G.mode==='rage'&&!ME.best.rage;recordWin();checkAch({win:true,mode:G.mode,time:G.playTime,caught:G.caught,bowls:G.bowls});bpAdd('wins');if(!G.hints)bpAdd('winnh');if(G.mode==='rage')bpAdd('winrage');if(['hard','insane','hell'].indexOf(G.mode)>=0)bpAdd('winhard');sfx('win');confetti();
   let newly=false;
   if(G.mode==='story'&&!unlocked){unlocked=true;newly=true;try{localStorage.setItem('iq300-unlocked','1');}catch(e){}}
   const others=ORDER.filter(id=>id!=='story'&&id!==G.mode).map(id=>
@@ -2323,7 +2352,7 @@ function win(){
   +(newly?'<p class="unlock">ปลดล็อกแล้ว: ยาก, โคตรยาก, ยากมากๆ และโหมดคลั่ง ข่าวหลุดว่าคุณหนีได้ โรงพยาบาลเลยอัปเกรดระบบรักษาความปลอดภัย ส่วนยามก็เริ่มฝึกมวย</p>':'')
   +'<h3>หนีอีกครั้งในโหมดไหน</h3><div class="nextmodes">'+others+'<button class="mode" data-act="begin" data-mode="'+G.mode+'"><span class="mname">เล่นโหมดนี้ซ้ำ</span><span class="mdesc">'+mode().name+' โจทย์ชุดใหม่ทั้งหมด</span></button></div>'
   +(ME.name?'':'<p class="hintline">ตั้งชื่อผู้เล่นที่หน้าแรก เวลาของคุณจะขึ้นลีดเดอร์บอร์ด</p>')
-  +'<div class="actions"><button class="btn primary" data-act="wardrobe">แต่งตัวด้วยชามที่ได้</button><button class="btn" data-act="board">ดูลีดเดอร์บอร์ด</button><button class="btn ghost" data-act="home">กลับหน้าแรก</button></div></div></section>';
+  +'<div class="actions">'+(G.race?'<button class="btn primary" data-act="ward-back">กลับห้อง '+G.race.ward+'</button>':'')+'<button class="btn'+(G.race?'':' primary')+'" data-act="wardrobe">แต่งตัวด้วยชามที่ได้</button><button class="btn" data-act="board">ดูลีดเดอร์บอร์ด</button><button class="btn ghost" data-act="home">กลับหน้าแรก</button></div></div></section>';
   window.scrollTo(0,0);
 }
 
@@ -2609,7 +2638,7 @@ function refreshSvcUi(){
     let t;
     if(SVC.state==='connecting')t='กำลังเชื่อมต่อออนไลน์...';
     else if(SVC.state==='offline')t='ออฟไลน์: เล่นคนเดียวได้ตามปกติ ลีดเดอร์บอร์ดรวมใช้ไม่ได้ในหน้านี้ แต่ห้องแข่งบนมือถือต่อกันตรงได้';
-    else t=(SVC.db?'ออนไลน์: ผลของคุณขึ้นลีดเดอร์บอร์ดได้':'ออนไลน์: แข่งกับเพื่อนได้ แต่ผลยังขึ้นลีดเดอร์บอร์ดไม่ได้')+(SVC.room?'':' · ห้องแข่งยังใช้ไม่ได้');
+    else t=(SVC.db?'ออนไลน์: ผลของคุณขึ้นลีดเดอร์บอร์ดได้':'ออนไลน์: แข่งกับเพื่อนได้ แต่ผลยังขึ้นลีดเดอร์บอร์ดไม่ได้');
     if(SVC.writeOk===false)t+=' (บันทึกผลไม่สำเร็จ ตรวจการเชื่อมต่อหรือสิทธิ์ของบัญชี)';
     e.textContent=t;
   }
@@ -2644,7 +2673,7 @@ function playerSection(){
    +nameForm('pname')
    +'<p class="muted small" id="svcstat" role="status" style="margin:10px 0"></p>'
    +'<div class="stats" id="mystats">'+myStatsHtml()+'</div>'
-   +'<div class="actions"><button class="btn primary" data-act="board">ลีดเดอร์บอร์ด</button><button class="btn" data-act="race">แข่งออนไลน์กับเพื่อน'+(isMobile()?'':' (เฉพาะมือถือ)')+'</button><button class="btn" data-act="wardrobe">ห้องแต่งตัว</button><button class="btn" data-act="pass">บัตรผ่าน (เลเวล '+ME.bp.lv+')</button><button class="btn" data-act="ach">เหรียญความสำเร็จ</button></div>'
+   +'<div class="actions"><button class="btn primary" data-act="board">ลีดเดอร์บอร์ด</button><button class="btn" data-act="wardrobe">ห้องแต่งตัว</button><button class="btn" data-act="pass">บัตรผ่าน (เลเวล '+ME.bp.lv+')</button><button class="btn" data-act="ach">เหรียญความสำเร็จ</button></div>'
    +'</div></section>';
 }
 async function initServices(){
@@ -2713,14 +2742,36 @@ function isMobile(){
 /* ใช้ PeerJS (WebRTC) ผ่านตัวกลางสาธารณะ เฉพาะตอนจับคู่ครั้งแรก หลังจากนั้นข้อมูลวิ่งตรงระหว่างมือถือ
    เจ้าของห้องเป็นศูนย์กลาง ส่งสถานะของทุกคนให้ทุกคน ถ้าเจ้าของห้องหลุด ห้องจะปิด */
 const PEER_CDN='https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
-const P2P_KEYS=['code','name','round','stage','done','ms','go','mob'];
+const P2P_KEYS=['code','name','round','stage','done','ms','go','mob','mode','sc','sk','x','y','f','mv'];
+const P2P_LEN={sk:80,mode:10,sc:8,code:8};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ---------- ตัวกรองข้อความและชื่อ (พื้นฐาน กันไม่ได้ทุกกรณี) ---------- */
+const BAD_TH=['ควย','เหี้ย','สัส','เย็ด','แม่ง','ไอ้สัตว์','อีสัตว์','ส้นตีน','ชาติหมา','ระยำ','กระหรี่','อีดอก','ไปตาย','ฆ่าตัวตาย','ไอ้ห่า','อีห่า','เสือก'];
+const BAD_EN=['fuck','shit','bitch','cunt','dick','pussy','nigg','slut','whore','porn','rape','sex','killyourself','nude','asshole'];
+function squeeze(s){return String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/0/g,'o').replace(/[1!|]/g,'i').replace(/3/g,'e').replace(/4|@/g,'a').replace(/5|\$/g,'s').replace(/[^a-z฀-๿]/g,'');}
+function badText(s){
+  const q=squeeze(s);
+  if(BAD_TH.some(w=>q.includes(w))||BAD_EN.some(w=>q.includes(w)))return true;
+  return /หี(?![ก-๙])/.test(q);
+}
+const HIDDEN_MSG='ข้อความนี้ถูกซ่อน';
+function chatClean(s){
+  s=String(s==null?'':s).normalize('NFKC').replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁠-⁯﻿]/g,' ').replace(/\s+/g,' ').trim().slice(0,80);
+  if(!s)return '';
+  if(badText(s))return HIDDEN_MSG;
+  return s.replace(/(?:https?:\/\/|www\.)\S*/gi,'***').replace(/\S+\.(?:com|net|org|io|me|co|th|xyz|app|gg|ly|tv|cc|info|biz)\b\S*/gi,'***').replace(/\S+@\S+/g,'***').replace(/(?:\+?\d[\s\-.]?){7,}/g,'***');
+}
+const safeName=s=>{const n=cleanName(s);return badText(n)?'ผู้เล่น':n;};
+const wearStr=w=>SLOTS.map(sl=>String((w&&w[sl[0]])||'none')).join(',');
+function wearFrom(str){const a=String(str||'').split(','),o={};SLOTS.forEach((sl,i)=>{o[sl[0]]=a[i];});return normWear(o);}
 function p2pClean(p){
   const o={};
   if(!p||typeof p!=='object')return o;
   P2P_KEYS.forEach(k=>{
     const v=p[k];
-    if(typeof v==='string')o[k]=k==='name'?cleanName(v):v.slice(0,24);
-    else if(typeof v==='number'&&isFinite(v))o[k]=v;
+    if(typeof v==='string')o[k]=k==='name'?safeName(v):v.replace(/[^\w,\-.]/g,'').slice(0,P2P_LEN[k]||24);
+    else if(typeof v==='number'&&isFinite(v))o[k]=(k==='x'||k==='y')?Math.max(-2,Math.min(64,Math.round(v*100)/100)):v;
     else if(typeof v==='boolean')o[k]=v;
   });
   return o;
@@ -2744,19 +2795,29 @@ function p2pOpenPeer(id){
     p.on('error',e=>{clearTimeout(t);try{p.destroy();}catch(x){}rej(e||new Error('peer'));});
   });
 }
-async function p2pJoin(code,create){
+async function p2pJoin(code,create,tmo){
   try{await loadPeerJs();}
   catch(e){throw new Error('โหลดตัวเชื่อมต่อแบบตรงไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วลองใหม่');}
   const hostId='iq300-'+code;
-  let handlers=[],closed=false,peer=null,hostConn=null,myKey='host';
-  const conns=new Map(),state={},mine={};
+  let handlers=[],chatH=[],closed=false,peer=null,hostConn=null,myKey='host',seq=0,dirty=false,timer=0;
+  const conns=new Map(),state={},mine={},lastMsg={};
   const list=()=>Object.keys(state).map(k=>({peer:k,kind:'viewer',sameTab:k===myKey,isMe:k===myKey,guest:false,presence:state[k]}));
   const emit=(extra)=>{const arr=list();handlers.slice().forEach(h=>{try{h(Object.assign({peers:arr},extra||{}));}catch(e){console.error(e);}});};
-  const broadcast=()=>{const msg={t:'s',s:state};conns.forEach(c=>{try{if(c.open)c.send(msg);}catch(e){}});};
+  const sendAll=msg=>{conns.forEach(c=>{try{if(c.open)c.send(msg);}catch(e){}});};
+  const flush=()=>{timer=0;if(!dirty)return;dirty=false;sendAll({t:'s',s:state});};
+  const broadcast=()=>{dirty=true;if(!timer)timer=setTimeout(flush,90);};
+  const deliver=msg=>{chatH.slice().forEach(h=>{try{h({k:String(msg.k),name:safeName(String(msg.n==null?'':msg.n)),text:chatClean(String(msg.m==null?'':msg.m)),isMe:msg.k===myKey});}catch(e){console.error(e);}});};
+  const hostChat=(k,text)=>{
+    if(typeof text!=='string')return;
+    const now=Date.now();if(now-(lastMsg[k]||0)<500)return;lastMsg[k]=now;
+    const m=chatClean(text);if(!m)return;
+    const msg={t:'c',k:k,n:(state[k]&&state[k].name)||'ผู้เล่น',m:m,i:++seq};
+    sendAll(msg);deliver(msg);
+  };
   if(create){
     try{peer=await p2pOpenPeer(hostId);}
     catch(e){
-      if(e&&e.type==='unavailable-id')throw Object.assign(new Error('รหัสห้องนี้มีคนใช้อยู่ ลองสร้างใหม่อีกครั้ง'),{retry:true});
+      if(e&&e.type==='unavailable-id')throw Object.assign(new Error('ห้องนี้มีคนเปิดอยู่แล้ว กำลังลองเข้าใหม่'),{retry:true});
       throw new Error('สร้างห้องไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วลองใหม่');
     }
     state[myKey]={};
@@ -2767,7 +2828,9 @@ async function p2pJoin(code,create){
         try{c.send({t:'s',s:state});}catch(e){}
       });
       c.on('data',m=>{
-        if(m&&m.t==='p'&&conns.has(c.peer)){state[c.peer]=p2pClean(m.p);broadcast();emit();}
+        if(!m||!conns.has(c.peer))return;
+        if(m.t==='p'){state[c.peer]=p2pClean(m.p);broadcast();emit();}
+        else if(m.t==='c')hostChat(c.peer,m.m);
       });
       const drop=()=>{if(conns.delete(c.peer)){delete state[c.peer];broadcast();emit();}};
       c.on('close',drop);c.on('error',drop);
@@ -2781,28 +2844,29 @@ async function p2pJoin(code,create){
     const onData=m=>{
       if(!m)return;
       if(m.t==='full'){closed=true;if(first)first(new Error('ห้องเต็มแล้ว (สูงสุด 8 คน)'));else emit({closed:true,full:true});return;}
+      if(m.t==='c'){deliver(m);return;}
       if(m.t==='s'&&m.s&&typeof m.s==='object'){
         Object.keys(state).forEach(k=>{delete state[k];});
-        Object.keys(m.s).slice(0,8).forEach(k=>{state[k]=p2pClean(m.s[k]);});
+        Object.keys(m.s).filter(k=>k.length<=40).slice(0,8).forEach(k=>{state[k]=p2pClean(m.s[k]);});
         if(!(myKey in state))state[myKey]=p2pClean(mine);
         if(first){const f=first;first=null;f();}else emit();
       }
     };
+    const nf=()=>Object.assign(new Error('ไม่พบห้องนี้ ตรวจรหัสอีกครั้ง หรือให้เจ้าของห้องเปิดหน้าค้างไว้'),{notFound:true});
     await new Promise((res,rej)=>{
-      const t=setTimeout(()=>rej(new Error('ไม่พบห้องนี้ ตรวจรหัสอีกครั้ง หรือให้เจ้าของห้องเปิดหน้าค้างไว้')),12000);
+      const t=setTimeout(()=>rej(nf()),tmo||12000);
       first=e=>{clearTimeout(t);e?rej(e):res();};
       const c=peer.connect(hostId,{reliable:true});
       hostConn=c;
       c.on('data',onData);
-      peer.on('error',e=>{clearTimeout(t);rej(new Error(e&&e.type==='peer-unavailable'?'ไม่พบห้องนี้ ตรวจรหัสอีกครั้ง หรือให้เจ้าของห้องเปิดหน้าค้างไว้':'เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง'));});
+      peer.on('error',e=>{clearTimeout(t);rej(e&&e.type==='peer-unavailable'?nf():new Error('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง'));});
       c.on('error',()=>{clearTimeout(t);rej(new Error('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง'));});
     }).catch(e=>{try{peer.destroy();}catch(x){}throw e;});
     const gone=()=>{if(!closed){closed=true;emit({closed:true});}};
     hostConn.on('close',gone);hostConn.on('error',gone);
-    state[myKey]={};
   }
   return {
-    name:'race-'+code,p2p:true,
+    name:'ward-'+code,p2p:true,isHost:!!create,
     presence:async patch=>{
       Object.keys(patch||{}).forEach(k=>{if(patch[k]===null)delete mine[k];else mine[k]=patch[k];});
       state[myKey]=p2pClean(mine);
@@ -2812,41 +2876,54 @@ async function p2pJoin(code,create){
         if(hostConn&&hostConn.open)hostConn.send({t:'p',p:state[myKey]});
       }
     },
+    chat:text=>{
+      text=String(text==null?'':text).slice(0,200);
+      if(create)hostChat('host',text);
+      else if(hostConn&&hostConn.open)hostConn.send({t:'c',m:text});
+    },
+    onChat:h=>{chatH.push(h);return()=>{chatH=chatH.filter(x=>x!==h);};},
     peers:list,
     onPeers:h=>{handlers.push(h);setTimeout(()=>emit(),0);return()=>{handlers=handlers.filter(x=>x!==h);};},
-    leave:async()=>{closed=true;handlers=[];try{conns.forEach(c=>{try{c.close();}catch(e){}});}catch(e){}try{peer.destroy();}catch(e){}}
+    leave:async()=>{closed=true;handlers=[];chatH=[];clearTimeout(timer);try{conns.forEach(c=>{try{c.close();}catch(e){}});}catch(e){}try{peer.destroy();}catch(e){}}
   };
 }
 function raceClosed(full){
-  if(!G.race)return;
-  leaveRace();showRace();
-  raceMsg(full?'ห้องเต็มแล้ว (สูงสุด 8 คน)':'ห้องถูกปิดแล้ว เพราะเจ้าของห้องออกหรือหลุดการเชื่อมต่อ');
+  const R=G.race;if(!R)return;
+  if(full){const n=R.ward;leaveRace();showHall();hallMsg('ห้อง '+n+' เต็มแล้ว (สูงสุด 8 คน) ลองห้องอื่น');return;}
+  wardLost();
 }
 function raceSend(p){const R=G.race;if(R&&R.room)Promise.resolve(R.room.presence(p)).catch(()=>{});}
-function showRace(){
-  stopTimer();
-  if(!isMobile()){
-    G.screen='racelobby';
-    main.innerHTML='<div class="topbar"><div class="who"><span class="hn">แข่งออนไลน์</span>ใครหนีเร็วกว่ากัน</div><div class="meta"><button class="btn-link" data-act="home">หน้าแรก</button></div></div>'
-     +'<section class="folder"><div class="ftab">ห้องแข่ง · เฉพาะมือถือ</div><div class="card"><h2 class="h">ห้องแข่งเปิดเฉพาะผู้เล่นบนมือถือ</h2>'
-     +'<p class="story">ทุกคนในห้องต้องเดินด้วยปุ่มบนจอสัมผัสเหมือนกัน การแข่งจะได้แฟร์ เพราะคีย์บอร์ดเดินคล่องกว่ามาก เปิดเกมนี้จากมือถือหรือแท็บเล็ต แล้วกลับมากดแข่งออนไลน์อีกครั้ง</p>'
-     +'<p class="muted small">เครื่องนี้ยังเล่นคนเดียวและดูลีดเดอร์บอร์ดได้ตามปกติ</p>'
-     +'<div class="actions"><button class="btn primary" data-act="home">กลับหน้าแรก</button></div></div></section>';
-    window.scrollTo(0,0);return;
-  }
-  if(G.race){showRaceRoom();return;}
-  G.screen='racelobby';
-  const ok=!!SVC.room;
-  main.innerHTML='<div class="topbar"><div class="who"><span class="hn">แข่งออนไลน์</span>ใครหนีเร็วกว่ากัน</div><div class="meta"><button class="btn-link" data-act="home">หน้าแรก</button></div></div>'
-   +'<section class="folder"><div class="ftab">ห้องแข่ง</div><div class="card">'
-   +'<p class="story">ทุกคนในห้องได้โจทย์ชุดเดียวกันและแผนที่เดียวกัน ใครหนีผ่านทั้ง 15 ด่านเร็วที่สุดชนะ เพื่อนต้องเปิดหน้าเดียวกันนี้ในเวลาเดียวกัน'+(SVC.room?'':' ห้องนี้ต่อกันตรงระหว่างมือถือ ไม่ผ่านเซิร์ฟเวอร์ของเรา เจ้าของห้องต้องเปิดหน้าค้างไว้จนแข่งเสร็จ')+'</p>'
-   +'<p class="muted small" id="svcstat" role="status"></p>'
-   +'<p class="notice" role="note">ห้องนี้เปิดเฉพาะผู้เล่นบนมือถือ ทุกคนใช้ปุ่มเดินบนจอสัมผัสเหมือนกัน</p>'
-   +'<h3>ชื่อของคุณ</h3>'+nameForm('rname')
-   +'<div class="cols" style="margin-top:18px"><div><h3>สร้างห้องใหม่</h3><p class="muted small" style="margin:0 0 10px">ระบบสร้างรหัสให้ แล้วบอกรหัสกับเพื่อน</p><button class="btn primary" data-act="race-create">สร้างห้อง</button></div>'
-   +'<div><h3>เข้าห้องของเพื่อน</h3><form data-form="racejoin" class="row"><label class="sr" for="racecode">รหัสห้อง</label><input class="field" id="racecode" type="text" maxlength="8" autocomplete="off" autocapitalize="characters" placeholder="รหัสห้อง" style="width:min(100%,9rem);font-family:var(--font-mono);text-transform:uppercase"><button class="btn" type="submit">เข้าห้อง</button></form></div></div>'
-   +'<p class="msg" id="racemsg" role="status"></p></div></section>';
-  refreshSvcUi();window.scrollTo(0,0);
+function setSc(v){const R=G.race;if(!R||R.sc===v)return;R.sc=v;raceSend({sc:v});}
+
+/* ---------- ห้องโถงพยาบาล ---------- */
+const WARDS=[101,102,103,104,105];
+try{G.chatOff=localStorage.getItem('iq300-chatoff')==='1';}catch(e){G.chatOff=false;}
+const chatBtn=()=>G.race&&G.screen!=='play'?'<button class="btn chatbtn'+(G.race.unread?' new':'')+'" data-act="chat-toggle">💬 แชต<span class="cbadge">'+(G.race.unread?' ('+G.race.unread+')':'')+'</span></button>':'';
+function hallMsg(t){const e=$('#hallmsg');if(e)e.textContent=t;}
+function pickDescText(id){return id==='race'?'ทุกคนในห้องได้โจทย์ชุดเดียวกัน ใครหนีครบ 15 ด่านเร็วที่สุดชนะ':MODES[id].desc;}
+function pickChips(inRoom){
+  return ORDER.concat(inRoom?['race']:[]).map(id=>{
+    const locked=id!=='story'&&id!=='race'&&!unlocked;
+    return '<button class="chip" data-act="pick" data-mode="'+id+'" aria-pressed="'+(G.pick===id)+'"'+(locked?' disabled':'')+'>'+(id==='race'?'แข่งเร็ว':MODES[id].name)+(locked?' (ล็อก)':'')+'</button>';
+  }).join('');
+}
+function showHall(){
+  stopTimer();if(G.race)leaveRace();G.screen='hall';G.S=null;
+  if(!G.pick||G.pick==='race'||(G.pick!=='story'&&!unlocked))G.pick='story';
+  const mob=isMobile();
+  const wards=WARDS.map(n=>'<button class="ward" data-act="ward" data-n="'+n+'"'+(mob?'':' disabled')+'><b>ห้อง '+n+'</b><span>'+(mob?'กดเข้าได้เลย':'เฉพาะมือถือ')+'</span></button>').join('');
+  main.innerHTML='<div class="topbar"><div class="who"><span class="hn">ห้องโถงพยาบาล</span>ชั้น 1 · ผู้ป่วยนั่งรอเต็มห้อง</div><div class="meta">'+sndBtn()+'<button class="btn-link" data-act="home">หน้าแรก</button></div></div>'
+   +'<section class="folder"><div class="ftab">ห้องโถงพยาบาล</div><div class="card hall">'
+   +'<p class="story">ผู้ป่วยทั้งตึกมานั่งรอพบหมอเต็มห้องโถง ธีเดินแทรกเข้ามาอย่างไม่มีพิรุธ (มีพิรุธมาก) เลือกโหมดก่อน แล้วจะหนีคนเดียว หรือเข้าห้องไปหนีพร้อมเพื่อนก็ได้</p>'
+   +'<h3>เลือกโหมด</h3><div class="modechips">'+pickChips(false)+'</div><p class="muted small" id="pickdesc">'+esc(pickDescText(G.pick))+'</p>'
+   +'<div class="actions"><button class="btn primary" data-act="solo">เล่นคนเดียว</button></div>'
+   +'<h3 style="margin-top:22px">หรือเข้าห้องเล่นกับเพื่อน</h3>'
+   +'<p class="muted small" style="margin:0 0 10px">ห้อง 101-105 ใครก็เข้าได้ เห็นเพื่อนเดินในแผนที่เดียวกัน ได้โจทย์ชุดเดียวกัน และพิมพ์คุยกันได้ ห้องละไม่เกิน 8 คน</p>'
+   +'<div class="hintline" role="note">ห้องนี้เปิดให้คนที่ไม่รู้จักเข้ามาได้ อย่าบอกชื่อจริง เบอร์โทร โรงเรียน หรือที่อยู่ ข้อความจะถูกกรองอัตโนมัติ ปิดแชตหรือปิดเสียงเพื่อนได้ทุกเมื่อ</div>'
+   +'<h3 style="margin-top:14px">ชื่อของคุณ</h3>'+nameForm('hname')
+   +'<div class="wards" style="margin-top:14px">'+wards+'</div>'
+   +'<p class="msg" id="hallmsg" role="status">'+(mob?'':'เครื่องนี้ไม่ใช่มือถือ จึงเข้าห้องไม่ได้ แต่เล่นคนเดียวได้ตามปกติ')+'</p></div></section>';
+  window.scrollTo(0,0);
 }
 function raceMsg(t){const e=$('#racemsg');if(e)e.textContent=t;}
 function raceName(){
@@ -2854,87 +2931,237 @@ function raceName(){
   if(!SVC.guestName)SVC.guestName='ผู้เล่น '+(100+Math.floor(Math.random()*900));
   return SVC.guestName;
 }
-async function raceJoin(code,create){
-  if(!isMobile()){raceMsg('ห้องแข่งเปิดเฉพาะผู้เล่นบนมือถือ');return;}
-  code=String(code||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-  if(code.length<3){raceMsg('กรอกรหัสห้องอย่างน้อย 3 ตัวอักษร');return;}
-  const inp=$('#rname'),typed=inp?cleanName(inp.value):'';
-  if(typed&&typed!==ME.name){ME.name=typed;saveLocal();pushMe();}
-  const cl=window.claude;
-  if(!SVC.room&&cl&&typeof cl.use==='function'){try{SVC.room=await cl.use('room');}catch(e){}}
-  raceMsg('กำลังเข้าห้อง...');
-  let room=null;
-  if(!SVC.room){
-    for(let tries=0;tries<4&&!room;tries++){
-      try{room=await p2pJoin(code,create);}
-      catch(e){
-        if(create&&e&&e.retry&&tries<3){code=randCode();continue;}
-        raceMsg(e&&e.message?e.message:'เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง');return;
-      }
-    }
-  }else{
-    try{room=await SVC.room.join('race-'+code);}catch(e){room=null;}
+async function wardConnect(n){
+  const code='w'+n;
+  for(let i=0;i<4;i++){
+    try{return await p2pJoin(code,false,7000);}
+    catch(e){if(!(e&&e.notFound))throw e;}
+    try{return await p2pJoin(code,true);}
+    catch(e){if(!(e&&e.retry))throw e;}
+    await sleep(250+Math.random()*700);
   }
-  if(!room){
-    if(SVC.room.noLobby){raceMsg('เชื่อมต่อห้องไม่สำเร็จ ลองกดอีกครั้ง หรือตรวจว่าเปิด Realtime ของ Supabase แล้ว');return;}
-    const L=SVC.room;
-    room={presence:p=>L.presence(p),peers:()=>L.peers(),onPeers:h=>L.onPeers(h),
-      leave:async()=>{await L.presence({code:null,name:null,round:null,stage:null,done:null,ms:null,go:null,mob:null});}};
-  }
-  const R=G.race={code,room,go:0,seenGo:null,joinedAt:Date.now(),peers:[],t0:0,ms:null,cd:0,countedWin:false,unsub:null};
-  R.unsub=room.onPeers(racePeers);
-  raceSend({code,name:raceName(),round:0,stage:0,done:false,mob:1});
-  showRaceRoom();
+  throw new Error('ห้อง '+n+' ติดขัดอยู่ ลองห้องอื่นหรือลองใหม่อีกครั้ง');
 }
+function wardAttach(n,room){
+  const code='w'+n;
+  let R=G.race;
+  if(R&&R.ward===n){R.room=room;}
+  else R=G.race={ward:n,code,room,go:0,seenGo:null,peers:[],t0:0,ms:null,cd:0,countedWin:false,unsub:null,unchat:null,chat:[],unread:0,mutes:{},ghosts:{},coop:false,sc:'',uiTm:0,lost:0};
+  R.unsub=room.onPeers(racePeers);
+  R.unchat=room.onChat(wardChat);
+  const inRun=G.screen==='play'||G.screen==='brief'||G.screen==='clear'||G.screen==='caught';
+  raceSend({code,name:raceName(),round:R.go,stage:inRun?Math.min(G.stage,TOTAL):0,done:false,mob:1,mode:R.mode||G.pick||'story',sc:R.sc||'hall',sk:wearStr(ME.wear)});
+}
+async function wardEnter(n){
+  if(G.wardBusy)return;
+  if(!isMobile()){hallMsg('ห้องเปิดเฉพาะผู้เล่นบนมือถือ เครื่องนี้เล่นคนเดียวได้');return;}
+  if(WARDS.indexOf(n)<0)return;
+  const inp=$('#hname'),typed=inp?cleanName(inp.value):'';
+  if(typed&&typed!==ME.name){ME.name=typed;saveLocal();pushMe();}
+  G.wardBusy=true;hallMsg('กำลังเข้าห้อง '+n+'...');
+  let room=null;
+  try{room=await wardConnect(n);}
+  catch(e){G.wardBusy=false;hallMsg(e&&e.message?e.message:'เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง');return;}
+  G.wardBusy=false;
+  if(G.screen!=='hall'){try{room.leave();}catch(e){}return;}
+  wardAttach(n,room);
+  showWard();
+}
+async function wardLost(){
+  const R=G.race;if(!R||R.lost)return;
+  R.lost=1;R.ghosts={};R.peers=[];
+  try{if(R.unsub)R.unsub();if(R.unchat)R.unchat();}catch(e){}
+  try{Promise.resolve(R.room.leave()).catch(()=>{});}catch(e){}
+  wardNote('หลุดจากห้อง '+R.ward+' กำลังเชื่อมต่อใหม่...');
+  for(let i=0;i<5&&G.race===R;i++){
+    await sleep(600+Math.random()*1800+i*800);
+    if(G.race!==R)return;
+    try{
+      const room=await wardConnect(R.ward);
+      if(G.race!==R){try{room.leave();}catch(e){}return;}
+      R.lost=0;wardAttach(R.ward,room);wardNote('');
+      if(G.screen==='raceroom')showWard();
+      return;
+    }catch(e){}
+  }
+  if(G.race===R){const n=R.ward;leaveRace();showHall();hallMsg('หลุดจากห้อง '+n+' ต่อกลับไม่สำเร็จ ลองเข้าห้องใหม่อีกครั้ง');}
+}
+function wardNote(t){const e=$('#wardnote');if(e)e.textContent=t;}
+
+/* ---------- แชต ---------- */
+function chatBoxHtml(id){
+  const off=!!G.chatOff;
+  return '<div class="chat"><div class="clog" role="log" aria-live="polite"></div>'
+   +'<form data-form="chat" class="row"><label class="sr" for="'+id+'">พิมพ์ข้อความ</label><input class="field" id="'+id+'" type="text" maxlength="80" autocomplete="off" placeholder="'+(off?'แชตปิดอยู่':'พิมพ์คุยกับเพื่อน')+'"'+(off?' disabled':'')+' style="font-family:var(--font-body);font-size:1.05rem"><button class="btn" type="submit"'+(off?' disabled':'')+'>ส่ง</button></form>'
+   +'<div><button class="btn-link small" data-act="chat-off" type="button">'+(off?'เปิดแชต':'ปิดแชต')+'</button> <span class="muted small">ข้อความถูกกรองอัตโนมัติ อย่าบอกข้อมูลส่วนตัว</span></div></div>';
+}
+function chatRender(){
+  const R=G.race;
+  document.querySelectorAll('.clog').forEach(el=>{
+    const bottom=el.scrollTop+el.clientHeight>=el.scrollHeight-8||!el.dataset.init;
+    el.innerHTML=R&&R.chat.length?R.chat.slice(-40).map(c=>'<p class="'+(c.me?'me':'')+(c.text===HIDDEN_MSG?' hid':'')+'"><b>'+esc(c.name)+':</b> '+esc(c.text)+'</p>').join(''):'<p class="muted">ยังไม่มีข้อความ ลองทักทายเพื่อนดู</p>';
+    if(bottom){el.scrollTop=el.scrollHeight;el.dataset.init='1';}
+  });
+}
+function chatBadge(){
+  const R=G.race,n=R?R.unread:0;
+  document.querySelectorAll('.cbadge').forEach(e=>{e.textContent=n?' ('+n+')':'';});
+  document.querySelectorAll('.chatbig,.chatbtn').forEach(e=>e.classList.toggle('new',!!n));
+}
+function chatSheetOpen(){const sh=$('#chatsheet');return !!sh&&!sh.hidden;}
+function chatMount(){
+  if($('#chatsheet'))return;
+  document.body.insertAdjacentHTML('beforeend','<div id="chatsheet" class="chatsheet" hidden><div class="sheethead"><b>แชต</b><button class="btn-link" data-act="chat-toggle" type="button">ปิด</button></div><div id="chatbox2"></div></div>');
+}
+function chatToggle(){
+  const R=G.race;if(!R)return;
+  chatMount();
+  if(G.screen==='raceroom'){R.unread=0;chatBadge();const i=$('#chatin');if(i)i.focus();return;}
+  const sh=$('#chatsheet');sh.hidden=!sh.hidden;
+  if(!sh.hidden){$('#chatbox2').innerHTML=chatBoxHtml('chatin2');R.unread=0;chatRender();chatBadge();const i=$('#chatin2');if(i)i.focus();}
+}
+function chatOffToggle(){
+  G.chatOff=!G.chatOff;try{localStorage.setItem('iq300-chatoff',G.chatOff?'1':'0');}catch(e){}
+  if(G.screen==='raceroom'){showWard();return;}
+  const b=$('#chatbox2');if(b&&chatSheetOpen()){b.innerHTML=chatBoxHtml('chatin2');chatRender();}
+}
+function sendChat(inp){
+  const R=G.race;if(!R||!inp||G.chatOff)return;
+  const t=String(inp.value||'').trim();if(!t)return;
+  const now=Date.now();if(now-(R.lastSend||0)<700){return;}
+  R.lastSend=now;inp.value='';
+  try{R.room.chat(t);}catch(e){}
+}
+function wardChat(m){
+  const R=G.race;if(!R||!m||!m.text)return;
+  if(!m.isMe&&(G.chatOff||R.mutes['k'+m.k]))return;
+  R.chat.push({k:m.k,name:m.name||'ผู้เล่น',text:m.text,me:!!m.isMe});
+  if(R.chat.length>60)R.chat.shift();
+  chatRender();
+  if(!m.isMe&&G.screen!=='raceroom'&&!chatSheetOpen()){R.unread++;chatBadge();}
+  if(W&&G.screen==='play'&&m.text!==HIDDEN_MSG){
+    if(m.isMe)say('p',m.text,3.2);
+    else{const gh=R.ghosts['k'+m.k];if(gh&&ghostVisible(gh))say(gh,m.text,3.6);}
+  }
+}
+
+/* ---------- ห้องรอ ---------- */
 function roomPlayers(){
   const R=G.race,out=[];
-  (R.peers||[]).forEach(p=>{if(p.kind==='viewer'){out.push({me:p.sameTab,name:cleanName(p.presence&&p.presence.name)||'ผู้เล่น'});}});
-  if(!out.some(x=>x.me))out.push({me:true,name:raceName()});
+  (R.peers||[]).forEach(p=>{if(p.kind==='viewer'){const q=p.presence||{};out.push({me:p.sameTab,key:p.peer,name:cleanName(q.name)||'ผู้เล่น',sc:q.sc||'',stage:q.stage});}});
+  if(!out.some(x=>x.me))out.push({me:true,key:'me',name:raceName(),sc:'hall'});
   return out;
 }
-function roomListHtml(){return roomPlayers().map(p=>'<li><span>'+esc(p.name)+(p.me?' (คุณ)':'')+'</span><span class="muted small">พร้อม</span></li>').join('');}
-function showRaceRoom(){
-  const R=G.race;G.screen='raceroom';
-  main.innerHTML='<div class="topbar"><div class="who"><span class="hn">แข่งออนไลน์</span>ห้องรอ</div><div class="meta"><button class="btn-link" data-act="home">ออกจากห้อง</button></div></div>'
-   +'<section class="folder"><div class="ftab">ห้อง '+esc(R.code.toUpperCase())+'</div><div class="card">'
-   +'<p class="muted small" style="margin:0 0 6px">บอกรหัสนี้กับเพื่อน</p><span class="roomcode">'+esc(R.code.toUpperCase())+'</span>'
-   +'<h3 style="margin-top:16px">คนในห้อง</h3><ul class="roomlist" id="roomlist">'+roomListHtml()+'</ul>'
-   +'<p class="muted small">ใครกดเริ่มก็ได้ ทุกคนจะนับถอยหลัง 3 วินาทีพร้อมกัน</p>'
-   +'<div class="actions"><button class="btn primary" data-act="race-start">เริ่มแข่ง</button><button class="btn ghost" data-act="race-leave">ออกจากห้อง</button></div></div></section>';
-  window.scrollTo(0,0);
+function roomListHtml(){
+  const R=G.race;
+  return roomPlayers().map(p=>{
+    const st=p.sc==='play'?'กำลังเล่นด่าน '+Math.min(Math.floor(+p.stage||0)+1,TOTAL):'อยู่ในห้องรอ';
+    const mu=!p.me&&R&&R.mutes['k'+p.key];
+    return '<li><span>'+esc(p.name)+(p.me?' (คุณ)':'')+'</span><span class="muted small">'+st+(p.me?'':' · <button class="btn-link small" data-act="mute" data-k="'+esc(p.key)+'">'+(mu?'เปิดเสียง':'ปิดเสียง')+'</button>')+'</span></li>';
+  }).join('');
+}
+function showWard(){
+  const R=G.race;if(!R)return;
+  stopTimer();G.screen='raceroom';setSc('hall');G.chatOpen=false;const sh=$('#chatsheet');if(sh)sh.hidden=true;R.unread=0;
+  if(!G.pick)G.pick='story';
+  if(G.pick!=='story'&&G.pick!=='race'&&!unlocked)G.pick='story';
+  main.innerHTML='<div class="topbar"><div class="who"><span class="hn">ห้อง '+R.ward+'</span>ห้องรอก่อนเริ่ม</div><div class="meta">'+sndBtn()+'<button class="btn-link" data-act="home">ออกจากห้อง</button></div></div>'
+   +'<section class="folder"><div class="ftab">ห้อง '+R.ward+' · เล่นกับเพื่อน</div><div class="card"><div class="cols"><div>'
+   +'<h3>คนในห้อง</h3><ul class="roomlist" id="roomlist">'+roomListHtml()+'</ul>'
+   +'<h3>โหมดที่จะเล่น</h3><div class="modechips">'+pickChips(true)+'</div><p class="muted small" id="pickdesc">'+esc(pickDescText(G.pick))+'</p>'
+   +'<p class="muted small">ใครกดเริ่มก็ได้ ทุกคนที่อยู่ในห้องรอจะนับถอยหลังพร้อมกันและได้โจทย์ชุดเดียวกัน เพื่อนที่อยู่ด่านเดียวกันจะโผล่เป็นตัวโปร่งแสงบนแผนที่ (ยามและแผงของแต่ละคนแยกกัน)</p>'
+   +'<div class="actions"><button class="btn primary" data-act="race-start">เริ่มเล่นพร้อมกัน</button><button class="btn ghost" data-act="race-leave">กลับห้องโถง</button></div>'
+   +'<p class="msg" id="wardnote" role="status">'+(R.lost?'หลุดจากห้อง กำลังเชื่อมต่อใหม่...':'')+'</p></div>'
+   +'<div><h3>แชตห้อง '+R.ward+'</h3>'+chatBoxHtml('chatin')+'</div></div></div></section>';
+  chatRender();window.scrollTo(0,0);
 }
 function racePeers(ch){
   const R=G.race;if(!R)return;
   if(ch&&ch.closed){raceClosed(ch.full);return;}
   R.peers=ch.peers.filter(p=>p.presence&&p.presence.code===R.code&&p.presence.mob===1);
-  let max=0;R.peers.forEach(p=>{const g=p.presence&&p.presence.go;if(typeof g==='number'&&isFinite(g)&&g>max)max=g;});
-  if(R.seenGo===null||(!R.room.p2p&&Date.now()-R.joinedAt<2500)){R.seenGo=Math.max(R.seenGo||0,max);}
-  else if(max>R.seenGo){R.seenGo=max;raceSend({round:max,stage:0,done:false,ms:null});startCountdown(max);return;}
+  let max=0,src=null;
+  R.peers.forEach(p=>{const g=p.presence.go;if(typeof g==='number'&&isFinite(g)&&g>max){max=g;src=p;}});
+  const alive={};
+  R.peers.forEach(p=>{
+    if(p.sameTab)return;
+    const q=p.presence,key='k'+p.peer;alive[key]=1;
+    const gh=R.ghosts[key]||(R.ghosts[key]={x:0,y:0,tx:0,ty:0,f:[0,1],mv:false,ph:Math.random()*6,init:false,sk:'',wear:DEF_WEAR,name:'',sc:'',stage:-1,round:-1});
+    gh.name=cleanName(q.name)||'ผู้เล่น';gh.sc=q.sc||'';gh.stage=typeof q.stage==='number'?q.stage:-1;gh.round=typeof q.round==='number'?q.round:-1;gh.mv=q.mv===1;
+    if(typeof q.x==='number'&&typeof q.y==='number'){gh.tx=q.x;gh.ty=q.y;if(!gh.init){gh.x=q.x;gh.y=q.y;gh.init=true;}}
+    if(typeof q.f==='number'){const a=(Math.round(q.f)%8)*Math.PI/4;gh.f=[Math.cos(a),Math.sin(a)];}
+    if((q.sk||'')!==gh.sk){gh.sk=q.sk||'';gh.wear=wearFrom(gh.sk);}
+  });
+  Object.keys(R.ghosts).forEach(k=>{if(!alive[k])delete R.ghosts[k];});
+  if(R.seenGo===null){R.seenGo=max;}
+  else if(max>R.seenGo){
+    R.seenGo=max;
+    if(['raceroom','racedone','win','over'].indexOf(G.screen)>=0){startCountdown(max,src&&src.presence.mode);return;}
+    toast({tag:'ห้อง '+R.ward,name:'เพื่อนเริ่มรอบใหม่แล้ว',fun:'เล่นรอบนี้ให้จบก่อน แล้วค่อยกดเริ่มพร้อมกันในห้องรอ'});
+  }
+  raceUiSoon();
+}
+function raceUi(){
+  const R=G.race;if(!R)return;
   if(G.screen==='raceroom'){const l=$('#roomlist');if(l)l.innerHTML=roomListHtml();}
   else if(G.screen==='racedone'){maybeCountWin();renderRaceResult();}
   else if(G.screen==='play'||G.screen==='caught')updateHud();
 }
+function raceUiSoon(){const R=G.race;if(!R||R.uiTm)return;R.uiTm=setTimeout(()=>{R.uiTm=0;raceUi();},180);}
 function raceStart(){
   const R=G.race;if(!R)return;
   let max=R.seenGo||0;(R.peers||[]).forEach(p=>{const g=p.presence&&p.presence.go;if(typeof g==='number'&&g>max)max=g;});
   const go=max+1;R.seenGo=go;
-  raceSend({go,round:go,stage:0,done:false,ms:null});
-  startCountdown(go);
+  const md=G.pick||'story';
+  raceSend({go,mode:md});
+  startCountdown(go,md);
 }
-function startCountdown(go){
+function startCountdown(go,md){
   const R=G.race;if(!R)return;
+  let m2=(typeof md==='string'&&(md==='race'||ORDER.indexOf(md)>=0))?md:'story';
+  if(m2!=='story'&&m2!=='race'&&!unlocked)m2='story';
   clearTimeout(R.cd);stopTimer();
-  G.mode='race';G.stage=0;G.caught=0;G.hints=0;G.playTime=0;G.lives=Infinity;G.S=null;
-  R.go=go;R.ms=null;R.t0=0;R.countedWin=false;G.screen='countdown';
+  G.mode=m2;G.stage=0;G.caught=0;G.hints=0;G.playTime=0;G.kos=0;G.bowls=0;G.bowlDone={};G.lives=MODES[m2].lives;G.S=null;
+  R.coop=m2!=='race';R.go=go;R.ms=null;R.t0=0;R.countedWin=false;R.mode=m2;G.screen='countdown';
+  R.sc='idle';raceSend({round:go,stage:0,done:false,ms:null,mode:m2,sc:'idle'});
   let n=3;const tip=rp(RACE_TIPS);
   const step=()=>{
     if(!G.race||G.screen!=='countdown')return;
     if(n>0){
-      main.innerHTML='<section class="folder"><div class="ftab">ห้อง '+esc(R.code.toUpperCase())+' · เตรียมตัว</div><div class="card result"><div class="countdown" aria-live="assertive">'+n+'</div><p class="muted">ทุกคนได้โจทย์ชุดเดียวกัน หนีให้เร็วที่สุด</p><p class="muted small">'+tip+'</p></div></section>';
+      main.innerHTML='<section class="folder"><div class="ftab">ห้อง '+R.ward+' · เตรียมตัว</div><div class="card result"><div class="countdown" aria-live="assertive">'+n+'</div><p class="muted">โหมด'+esc(m2==='race'?'แข่งเร็ว':MODES[m2].name)+' · ทุกคนได้โจทย์ชุดเดียวกัน</p><p class="muted small">'+tip+'</p></div></section>';
       n--;R.cd=setTimeout(step,900);
     }else{R.t0=performance.now();beginStage();}
   };
   step();window.scrollTo(0,0);
+}
+
+/* ---------- ตัวละครเพื่อนบนแผนที่ ---------- */
+function ghostVisible(o){const R=G.race;return !!R&&o.init&&o.sc==='play'&&o.stage===G.stage&&o.round===R.go&&(R.coop||G.mode==='race');}
+function posTick(dt){
+  const R=G.race;if(!R||!R.room||!W||!(R.coop||G.mode==='race'))return;
+  R.pt=(R.pt||0)+dt;if(R.pt<0.12)return;
+  const el=R.pt;R.pt=0;
+  const f=((Math.round(Math.atan2(W.face[1],W.face[0])/(Math.PI/4))%8)+8)%8;
+  const x=Math.round(W.px*50)/50,y=Math.round(W.py*50)/50,mv=W.moving?1:0,l=R.lastPos;
+  R.hb=(R.hb||0)+el;
+  if(l&&l.x===x&&l.y===y&&l.f===f&&l.mv===mv&&R.hb<1.5)return;
+  R.hb=0;R.lastPos={x:x,y:y,f:f,mv:mv};
+  raceSend({x:x,y:y,f:f,mv:mv});
+}
+function drawGhosts(ctx){
+  const R=G.race;if(!R||!W||!(R.coop||G.mode==='race'))return;
+  const now=performance.now(),dt=Math.min(0.1,(now-(R.gt||now))/1000);R.gt=now;
+  const k=Math.min(1,dt*10);
+  Object.keys(R.ghosts).forEach(key=>{
+    const o=R.ghosts[key];if(!ghostVisible(o))return;
+    o.x+=(o.tx-o.x)*k;o.y+=(o.ty-o.y)*k;
+    const x=o.x*TS,y=o.y*TS,sw=o.mv?Math.sin(W.t*14+o.ph)*4:0;
+    ctx.save();ctx.globalAlpha=.62;
+    drawHero(ctx,x,y,{wear:o.wear,fx:o.f[0],fy:o.f[1],sw:sw,t:W.t,eyes:o.f[1]<=0.5});
+    ctx.restore();
+    ctx.font='700 15px Sarabun,sans-serif';ctx.textAlign='center';ctx.textBaseline='alphabetic';
+    ctx.lineWidth=4;ctx.strokeStyle='rgba(0,0,0,.75)';ctx.fillStyle='rgba(255,255,255,.95)';
+    ctx.strokeText(o.name,x,y-24);ctx.fillText(o.name,x,y-24);
+  });
 }
 function raceRacers(){
   const R=G.race,out=[];
@@ -2950,11 +3177,11 @@ function raceHudInner(){
   const R=G.race;
   const rows=raceRacers().map(r=>{
     const segs=Array.from({length:TOTAL},(_,i)=>'<i class="'+(r.done||i<r.stage?'done':i===r.stage?'cur':'')+'"></i>').join('');
-    return '<div class="rrow'+(r.me?' me':'')+'"><span class="rname">'+esc(r.name)+(r.me?' (คุณ)':'')+'</span><span class="rbar">'+segs+'</span><span class="rms mono">'+(r.done?fmtMs(r.ms):'ด่าน '+Math.min(r.stage+1,TOTAL)+'/'+TOTAL)+'</span></div>';
+    return '<div class="rrow'+(r.me?' me':'')+'"><span class="rname">'+esc(r.name)+(r.me?' (คุณ)':'')+'</span><span class="rbar">'+segs+'</span><span class="rms mono">'+(r.done?(G.mode==='race'?fmtMs(r.ms):'ถึงร้านแล้ว'):'ด่าน '+Math.min(r.stage+1,TOTAL)+'/'+TOTAL)+'</span></div>';
   }).join('');
-  return '<div class="rhead"><b>แข่งออนไลน์ · ห้อง '+esc(R.code.toUpperCase())+'</b><span class="mono" id="racetime">'+fmtMs(R.ms!=null?R.ms:(R.t0?performance.now()-R.t0:0))+'</span></div>'+rows;
+  return '<div class="rhead"><b>'+(G.mode==='race'?'แข่งเร็ว':'เล่นด้วยกัน')+' · ห้อง '+R.ward+(R.lost?' (กำลังต่อใหม่...)':'')+'</b><span class="mono" id="racetime">'+fmtMs(R.ms!=null?R.ms:(R.t0?performance.now()-R.t0:0))+'</span></div>'+rows;
 }
-function raceHud(){return G.race&&G.mode==='race'?'<section class="racehud" id="racehud" aria-label="ผู้แข่งขัน">'+raceHudInner()+'</section>':'';}
+function raceHud(){return G.race&&(G.mode==='race'||G.race.coop)?'<section class="racehud" id="racehud" aria-label="ผู้แข่งขัน">'+raceHudInner()+'</section>':'';}
 function updateHud(){const e=$('#racehud');if(e&&G.race)e.innerHTML=raceHudInner();}
 function raceAdvance(){
   if(G.stage>=TOTAL-1){finishRace();return;}
@@ -2962,7 +3189,7 @@ function raceAdvance(){
 }
 function finishRace(){
   const R=G.race;stopTimer();
-  R.ms=Math.round(performance.now()-R.t0);G.screen='racedone';
+  R.ms=Math.round(performance.now()-R.t0);G.screen='racedone';setSc('idle');
   raceSend({stage:TOTAL,done:true,ms:R.ms});
   ME.racePlayed++;ME.bowls+=5;ME.raceBest=minN(ME.raceBest,R.ms);
   pushMe();
@@ -2983,17 +3210,19 @@ function renderRaceResult(){
   const lead=rs.length<2?'คุณหนีออกมาได้ใน '+fmtMs(R.ms)+' ยังไม่มีคู่แข่งในห้อง'
     :all?(first.me?'คุณหนีเร็วที่สุดในห้อง':esc(first.name)+' หนีเร็วที่สุดในห้อง'):'คุณหนีออกมาแล้ว รอเพื่อนที่ยังหนีไม่เสร็จ';
   const list='<ol class="board">'+rs.map((r,i)=>'<li class="'+(r.me?'me':'')+'"><span class="rk">'+(r.done?i+1:'-')+'</span><span class="nm">'+esc(r.name)+(r.me?' (คุณ)':'')+'</span><span class="tm">'+(r.done?fmtMs(r.ms):'ด่าน '+Math.min(r.stage+1,TOTAL)+'/'+TOTAL)+'</span></li>').join('')+'</ol>';
-  main.innerHTML='<div class="topbar"><div class="who"><span class="hn">แข่งออนไลน์</span>ห้อง '+esc(R.code.toUpperCase())+'</div><div class="meta"><button class="btn-link" data-act="home">ออกจากห้อง</button></div></div>'
+  main.innerHTML='<div class="topbar"><div class="who"><span class="hn">แข่งเร็ว</span>ห้อง '+R.ward+'</div><div class="meta">'+chatBtn()+'<button class="btn-link" data-act="home">ออกจากห้อง</button></div></div>'
    +'<section class="folder"><div class="ftab">ผลการแข่ง</div><div class="card result"><span class="stamp ok">'+(all&&first.me&&rs.length>=2?'ชนะ':'หนีได้')+'</span>'
    +'<p class="lead">'+lead+'</p>'+list
-   +'<div class="actions"><button class="btn primary" data-act="race-start">แข่งอีกรอบ</button><button class="btn ghost" data-act="board">ลีดเดอร์บอร์ด</button><button class="btn ghost" data-act="race-leave">ออกจากห้อง</button></div></div></section>';
+   +'<div class="actions"><button class="btn primary" data-act="race-start">แข่งอีกรอบ</button><button class="btn" data-act="ward-back">กลับห้องรอ</button><button class="btn ghost" data-act="board">ลีดเดอร์บอร์ด</button><button class="btn ghost" data-act="race-leave">ออกจากห้อง</button></div></div></section>';
 }
 function leaveRace(){
   const R=G.race;if(!R)return;
-  clearTimeout(R.cd);
+  clearTimeout(R.cd);clearTimeout(R.uiTm);
   try{if(R.unsub)R.unsub();}catch(e){}
+  try{if(R.unchat)R.unchat();}catch(e){}
   try{Promise.resolve(R.room.leave()).catch(()=>{});}catch(e){}
   G.race=null;if(G.mode==='race')G.mode=null;
+  G.chatOpen=false;const sh=$('#chatsheet');if(sh)sh.hidden=true;
 }
 
 
@@ -3364,8 +3593,18 @@ const ACT={
   'mm-clear':()=>{G.S.mm.cur=[];renderStage();},
   'mm-send':()=>mmSend(),use:()=>openPuzzle(),'close-puzzle':()=>closePuzzle(),
   board:()=>showBoard(),'board-tab':b=>{boardTab=b.dataset.t;showBoard(true);},
-  race:()=>showRace(),'race-create':()=>raceJoin(randCode(),true),'race-start':()=>raceStart(),
-  'race-leave':()=>{leaveRace();showRace();},
+  hall:()=>showHall(),race:()=>showHall(),'race-start':()=>raceStart(),
+  'race-leave':()=>{leaveRace();showHall();},
+  solo:()=>startMode(G.pick&&G.pick!=='race'?G.pick:'story'),
+  ward:b=>wardEnter(Number(b.dataset.n)),
+  'ward-back':()=>{if(G.race)showWard();else showHall();},
+  pick:b=>{
+    G.pick=b.dataset.mode;
+    document.querySelectorAll('.chip[data-act="pick"]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.mode===G.pick)));
+    const d=$('#pickdesc');if(d)d.textContent=pickDescText(G.pick);
+  },
+  mute:b=>{const R=G.race;if(!R)return;const k='k'+b.dataset.k;R.mutes[k]=!R.mutes[k];const l=$('#roomlist');if(l)l.innerHTML=roomListHtml();},
+  'chat-toggle':()=>chatToggle(),'chat-off':()=>chatOffToggle(),
   punch:b=>{punch();b.blur();},
   rage:b=>{goRage();b.blur();},
   snd:()=>{
@@ -3398,7 +3637,7 @@ document.addEventListener('submit',e=>{
   e.preventDefault();
   if(f.dataset.form==='seq'&&G.screen==='play')submitSeq();
   else if(f.dataset.form==='name')saveName(f.dataset.input);
-  else if(f.dataset.form==='racejoin'){const c=$('#racecode');raceJoin(c?c.value:'',false);}
+  else if(f.dataset.form==='chat'){sendChat(f.querySelector('input'));}
 });
 
 showHome();initServices();
