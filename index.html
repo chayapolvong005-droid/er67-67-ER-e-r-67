@@ -310,6 +310,21 @@ ul.camrules li{margin-bottom:2px}
 .item[aria-pressed="true"]{border-color:var(--ink);background:var(--ctrl)}
 .item .is{font-size:.8rem;color:var(--muted)}
 .item.own .is{color:var(--ok);font-weight:600}
+.badge.cls{background:var(--ctrl-hi);color:var(--ink);border:2px solid var(--ink);padding:0 8px}
+.cfiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:12px;margin-top:12px}
+.cfile{display:flex;flex-direction:column;gap:6px;border:2px solid var(--line);background:var(--paper);padding:12px 14px;border-radius:2px;position:relative}
+.cfile.on{border-color:var(--ink);background:var(--ctrl);box-shadow:4px 4px 0 var(--ink)}
+.cfile h3{margin:0;font-family:var(--font-display);font-size:1.15rem;line-height:1.35}
+.cf-head{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.78rem}
+.cf-ico{font-size:1.6rem;line-height:1}
+.cfile dl{margin:0;display:grid;gap:6px}
+.cfile dt{font-size:.74rem;color:var(--muted);font-weight:600}
+.cfile dd{margin:0;font-size:.9rem;line-height:1.5}
+.cfile .cf-skill{color:var(--ok);font-weight:600}
+.cf-foot{display:flex;flex-direction:column;gap:6px;margin-top:auto;padding-top:6px}
+.cf-price{font-size:.82rem;color:var(--muted)}
+.cf-foot .btn{width:100%}
+
 .bal{font-weight:700}
 #fin{display:block;width:100%;height:auto}
 .fbox{margin-top:12px;padding:12px 14px;background:var(--ctrl);border-left:4px solid var(--stamp);min-height:7rem}
@@ -1008,6 +1023,43 @@ let iqN=-1;
 
 /* ---------- ร้านแต่งตัว ---------- */
 const WIN_BONUS=10;
+/* ---------- คลาส: แฟ้มประวัติคนไข้ (ซื้อด้วยชามก๋วยเตี๋ยว เปลี่ยนได้ทุกเมื่อ ยกเว้นตอนเล่น) ---------- */
+const CLASSES=[
+ {id:'none',name:'คนไข้ทั่วไป',sn:'ทั่วไป',icon:'📋',price:0,no:'0300',
+  sym:'คิดเลขในใจตลอดเวลา จนบางทีลืมกินข้าว',
+  his:'แฟ้มเดิมของธี หนีมาแล้วเก้ารอบ ไม่มีความสามารถเด่น แต่ก็ไม่มีจุดอ่อนเป็นพิเศษ',
+  skill:'ไม่มีความสามารถพิเศษ',perk:{}},
+ {id:'boxer',name:'คนไข้นักมวยกระสอบทราย',sn:'นักมวย',icon:'🥊',price:120,no:'0411',
+  sym:'ต่อยกระสอบทรายห้องกายภาพทุกคืน จนกระสอบขอย้ายห้อง',
+  his:'ชนะมวยชิงแชมป์ตึก 4 โดยคู่ต่อสู้คือโต๊ะข้างเตียง หมอบันทึกว่าโต๊ะไม่ได้ร้องเรียน',
+  skill:'หมัดยาวขึ้น 25% และมาตรวัดคลั่งเต็มเร็วขึ้น 40% (ใช้ตอนต่อยในโหมดคลั่งและด่านบอส)',perk:{reach:1.25,rageGain:1.4}},
+ {id:'runner',name:'คนไข้นักวิ่งทางเดิน',sn:'นักวิ่ง',icon:'🏃',price:150,no:'0522',
+  sym:'วิ่งรอบทางเดินตึก 4 ทุกเช้า 40 รอบ เพราะหมอบอกให้ไปเดินเล่น',
+  his:'เคยวิ่งแซงรถเข็นอาหารได้สามคัน ยามจดไว้ในสมุดว่า คนไข้ห้อง 407 เร็วผิดปกติ',
+  skill:'เดินเร็วขึ้น 15%',perk:{speed:1.15}},
+ {id:'sleuth',name:'คนไข้นักสืบผนังห้อง',sn:'นักสืบ',icon:'🔍',price:150,no:'0633',
+  sym:'จดรอยร้าวบนผนังทุกรอยลงสมุด พร้อมวิเคราะห์ว่ารอยไหนเป็นของใคร',
+  his:'ไขคดีรองเท้าแตะหายห้อง 405 ได้ในสองนาที ผู้ต้องสงสัยคือรองเท้าข้างขวา',
+  skill:'ขอใบ้แล้วความสงสัยเพิ่มเพียงครึ่งเดียว',perk:{hintMul:.5}},
+ {id:'calm',name:'คนไข้เซียนสมาธิ',sn:'เซียนสมาธิ',icon:'🧘',price:180,no:'0744',
+  sym:'นั่งสมาธิหน้าตู้กดน้ำ จนยามมาถามว่าตู้เสียหรือเปล่า',
+  his:'เคยนั่งนิ่งตอนซ้อมดับเพลิง จนทีมดับเพลิงต้องมาขอให้ลุก เพราะซ้อมจบไปสองชั่วโมงแล้ว',
+  skill:'ตอบผิดแล้วความสงสัยเพิ่มน้อยลง 30% และความสงสัยที่ขึ้นตามเวลาช้าลง 20%',perk:{wrongMul:.7,timeMul:.8}},
+ {id:'tank',name:'คนไข้ตัวแข็งเหมือนตู้เย็น',sn:'ตัวแข็ง',icon:'🛡️',price:200,no:'0855',
+  sym:'ชนประตูแล้วไม่รู้สึกอะไร แต่รู้สึกหิวทุกครั้งที่ผ่านห้องครัว',
+  his:'เคยถูกรถเข็นยาชนเต็มแรง รถเข็นล้ม แต่คนไข้ยังยืน หมอสั่งตรวจรถเข็นแทน',
+  skill:'พลังตอนสู้เพิ่ม 2 หน่วย (เป็น 7 หน่วย) ในโหมดคลั่งและด่านบอส',perk:{hpAdd:2}},
+ {id:'foodie',name:'คนไข้นักชิมน้ำซุป',sn:'นักชิม',icon:'🍜',price:120,no:'0966',
+  sym:'ได้กลิ่นน้ำซุปจากโรงครัวชั้น 1 ตั้งแต่ห้อง 407 และบอกได้ว่าหม้อไหนใส่ผักชีน้อยไป',
+  his:'ชิมน้ำซุปป้าติ๋มครั้งเดียวก็เขียนสูตรออกมาได้ครบ ยกเว้นความลับเรื่องน้ำตาล 3.7%',
+  skill:'เก็บชามก๋วยเตี๋ยวแล้วลดความสงสัยได้ 20% (ปกติ 12%)',perk:{bowlSusp:20}}
+];
+const clsOf=id=>CLASSES.find(c=>c.id===id)||CLASSES[0];
+const clsOwn=id=>{const c=clsOf(id);return c.price===0||ME.owned.includes('cls:'+c.id);};
+const perk=(k,d)=>{if(G.mode==='race')return d;const p=clsOf(ME.cls).perk;return p&&p[k]!=null?p[k]:d;};
+const wrongPen=()=>Math.round(mode().wrong*perk('wrongMul',1));
+const hintPen=()=>Math.round(mode().hint*perk('hintMul',1));
+const clsBadge=()=>(ME.cls==='none'||G.mode==='race')?'':'<span class="badge cls" title="เปลี่ยนคลาสตอนเล่นไม่ได้">'+clsOf(ME.cls).icon+' '+esc(clsOf(ME.cls).sn)+'</span>';
 const SLOTS=[['outfit','เสื้อผ้า'],['hat','หมวก'],['face','หน้า'],['aura','ออร่า'],['pet','แมว']];
 const ITEMS={
  outfit:[
@@ -1074,7 +1126,7 @@ const ACH=[
  {id:'bowl200',name:'เศรษฐีเส้นเล็ก',desc:'เก็บชามก๋วยเตี๋ยวรวม 200 ชาม',fun:'ป้าติ๋มเสนอให้ลงทุนเปิดสาขา',r:15,p:()=>[ME.bowls,200]},
  {id:'hint20',name:'ขอใบ้เป็นอาชีพ',desc:'ขอใบ้รวม 20 ครั้ง',fun:'IQ 300 แต่ชอบถามคนอื่น',r:5,p:()=>[ME.cnt.hints,20]},
  {id:'wrong30',name:'ผิดอย่างมีสไตล์',desc:'ตอบผิดรวม 30 ครั้ง',fun:'ไม่ใช่พลาด เรียกว่าเก็บข้อมูลเชิงลบ',r:5,p:()=>[ME.cnt.wrong,30]},
- {id:'closet',name:'แฟชั่นนิสต้าตึก 4',desc:'ซื้อของที่ห้องแต่งตัวครบ 5 ชิ้น',fun:'ตู้เสื้อผ้ากว้างกว่าห้อง 407',r:8,p:()=>[ME.owned.length,5]},
+ {id:'closet',name:'แฟชั่นนิสต้าตึก 4',desc:'ซื้อของที่ห้องแต่งตัวครบ 5 ชิ้น',fun:'ตู้เสื้อผ้ากว้างกว่าห้อง 407',r:8,p:()=>[ME.owned.filter(k=>k.indexOf('cls:')!==0).length,5]},
  {id:'catlover',name:'ทาสแมว',desc:'ซื้อแมวมาเกาะไหล่',fun:'แมวบอกว่าคุณเป็นลูกน้องของมัน',r:8,p:()=>[ME.owned.some(k=>k.indexOf('pet:')===0)?1:0,1]},
  {id:'nobowl',name:'ประท้วงด้วยการอดข้าว',desc:'หนีสำเร็จโดยไม่เก็บชามก๋วยเตี๋ยวเลยสักชาม',fun:'ใครก็ได้ไปดูแลเขาที',r:10,ev:c=>c.win&&c.bowls===0},
  {id:'perfect',name:'ผู้บริสุทธิ์ผุดผ่อง',desc:'หนีสำเร็จโดยไม่ถูกจับเลยสักครั้ง',fun:'ยามสงสัยว่าคุณเป็นพนักงานใหม่',r:10,ev:c=>c.win&&c.caught===0},
@@ -1083,6 +1135,8 @@ const ACH=[
  {id:'boss',name:'ล้มราชาก๋วยเตี๋ยว',desc:'โค่นราชาเส้นเล็กในโหมดคลั่ง',fun:'เขาขอให้บอกลูกค้าว่า ใจเขายังเป็นเส้นเล็กอยู่',r:15,p:()=>[ME.cnt.boss,1]},
  {id:'bossm',name:'ล้มราชาเส้นหมี่',desc:'โค่นราชาเส้นหมี่ในโหมดยากมากๆ หรือโหมดคลั่ง',fun:'เขาขอให้ฝากบอกลูกค้าว่า เส้นแห้งก็อร่อยเหมือนกัน',r:12,p:()=>[ME.cnt.bossm,1]},
  {id:'bossb',name:'ล้มราชาเส้นใหญ่',desc:'โค่นราชาเส้นใหญ่ในโหมดคลั่ง',fun:'ตัวเขาใหญ่จนทีมงานต้องเรียกรถยกมาเก็บ',r:15,p:()=>[ME.cnt.bossb,1]},
+ {id:'cls1',name:'เปิดแฟ้มใหม่',desc:'ซื้อแฟ้มประวัติ (คลาส) แบบแรก',fun:'ฝ่ายเวชระเบียนบอกว่าแฟ้มนี้หนากว่าที่คิด เพราะมีลายเซ็นร้องเรียนเต็มทุกหน้า',r:6,p:()=>[ME.owned.some(k=>k.indexOf('cls:')===0)?1:0,1]},
+ {id:'clsall',name:'ครบทุกแฟ้ม',desc:'ซื้อแฟ้มประวัติครบทุกคลาส',fun:'หมอบอกว่านี่ไม่ใช่คนไข้คนเดียว แต่เป็นคนไข้ทั้งตึก',r:20,p:()=>[ME.owned.filter(k=>k.indexOf('cls:')===0).length,CLASSES.length-1]},
  {id:'allmodes',name:'ครบทุกรส',desc:'หนีสำเร็จครบทั้ง 5 โหมด',fun:'เหมือนกินครบ เส้นเล็ก เส้นใหญ่ บะหมี่ เกาเหลา และเย็นตาโฟ',r:25,p:()=>[MODE_IDS.filter(id=>ME.best[id]).length,5]},
  {id:'racer',name:'ลูกแหกตัวจริง',desc:'แข่งออนไลน์จนจบ 1 ครั้ง',fun:'วิ่งเร็วกว่าเพื่อน หรืออย่างน้อยเร็วกว่ากล้องวงจรปิด',r:5,p:()=>[ME.racePlayed,1]},
  {id:'racewin',name:'ราชาห้องแข่ง',desc:'ชนะการแข่งออนไลน์ 1 ครั้ง',fun:'เพื่อนขอล้างแค้นรอบหน้า',r:10,p:()=>[ME.raceWins,1]},
@@ -2273,14 +2327,14 @@ function punch(){
   for(const g of W.guards){
     if(g.ko)continue;
     const dx=g.x-W.px,dy=g.y-W.py,d=Math.hypot(dx,dy);
-    if(d>(g.boss?g.K.br:1.35))continue;
+    if(d>(g.boss?g.K.br:1.35)*perk('reach',1))continue;
     if(d>0.35&&(dx*W.face[0]+dy*W.face[1])/d<0.3)continue;
     g.hp-=dmg;g.hitT=0.25;alertGuard(g,true);
     const ux=dx/(d||1),uy=dy/(d||1);
     const kb=g.boss?.12:.5;
     if(!hitsWall(g.x+ux*kb,g.y))g.x+=ux*kb;
     if(!hitsWall(g.x,g.y+uy*kb))g.y+=uy*kb;
-    if(W.raging<=0)W.rage=Math.min(100,W.rage+34);
+    if(W.raging<=0)W.rage=Math.min(100,W.rage+34*perk('rageGain',1));
     if(g.hp<=0){
       g.ko=true;g.sees=false;W.kos++;G.kos++;ME.kos++;saveLocal();checkAch();bpAdd('kos');
       sfx('ko');say(g,rp(g.boss?g.K.down:KO_QUIPS),2.4);
@@ -2457,7 +2511,7 @@ function initWorld(){
   grid.forEach((r,y)=>r.forEach((c,x)=>{if(c==='P'){P=[x,y];r[x]='.';}else if(c==='T')T=[x,y];else if(c==='D')D=[x,y];}));
   const cv=$('#world');cv.width=grid[0].length*TS;cv.height=grid.length*TS;
   W={grid,cols:grid[0].length,rows:grid.length,T,D,doorOpen:false,solved:false,puzzleOpen:false,near:false,
-     px:P[0]+.5,py:P[1]+.5,face:[0,1],walk:0,moving:false,cv,ctx:cv.getContext('2d'),keys:{},pad:{},last:performance.now(),raf:0,t:0,hp:5,mhp:5,inv:0,cd:0,punchT:0,rage:0,raging:0,flash:0,kos:0,got:0,nb:0,bowls:[],bubbles:[],dist:null,wsHtml:'',rageTold:false,catT:6+Math.random()*6,
+     px:P[0]+.5,py:P[1]+.5,face:[0,1],walk:0,moving:false,cv,ctx:cv.getContext('2d'),keys:{},pad:{},last:performance.now(),raf:0,t:0,hp:5+perk('hpAdd',0),mhp:5+perk('hpAdd',0),inv:0,cd:0,punchT:0,rage:0,raging:0,flash:0,kos:0,got:0,nb:0,bowls:[],bubbles:[],dist:null,wsHtml:'',rageTold:false,catT:6+Math.random()*6,
      guards:def.guards.map((g,gi)=>{
        const pts=g.pts.map(p=>[p[0]+.5,p[1]+.5]),i=g.start||0,dir=i===0?1:-1,nx=pts[i+dir];
        const dx=nx[0]-pts[i][0],dy=nx[1]-pts[i][1],d=Math.hypot(dx,dy)||1;
@@ -2497,7 +2551,7 @@ function updateWorld(dt){
   W.moving=dx!==0||dy!==0;
   if(W.moving){
     const n=Math.hypot(dx,dy);dx/=n;dy/=n;W.face=[dx,dy];W.walk+=dt;
-    const sp=4.2*(W.raging>0?1.5:1)*dt;
+    const sp=4.2*(W.raging>0?1.5:1)*perk('speed',1)*dt;
     if(!hitsWall(W.px+dx*sp,W.py))W.px+=dx*sp;
     if(!hitsWall(W.px,W.py+dy*sp))W.py+=dy*sp;
   }
@@ -2536,7 +2590,7 @@ function updateWorld(dt){
     if(b.got||Math.hypot(W.px-b.x,W.py-b.y)>=0.6)continue;
     b.got=true;W.got++;G.bowlDone[G.stage]=W.got;G.bowls++;ME.bowls++;saveLocal();sfx('pickup');checkAch();bpAdd('bowls');
     if(ME.wear.pet!=='none'&&Math.random()<.35)say('cat',rp(CAT_PICK),1.8);
-    S.susp=Math.max(0,S.susp-12);updateMeter();
+    S.susp=Math.max(0,S.susp-perk('bowlSusp',12));updateMeter();
     if(rage&&W.hp<W.mhp)W.hp++;
     say('p',rp(PICKUP_QUIPS),2.2);
   }
@@ -2740,7 +2794,7 @@ function topbar(extraDone){
   const done=G.stage+(extraDone||0);
   const steps=Array.from({length:plan().length},(_,i)=>'<i class="'+(i<done?'done':i===G.stage&&!extraDone?'cur':'')+'"></i>').join('');
   return '<div class="topbar"><div class="who"><span class="hn">แฟ้ม 0300</span>ธีรภัทร์ สมองเพชร</div>'
-    +'<div class="meta"><span class="badge">'+m.name+'</span><span>โอกาส '+lives+'</span><span>ถูกจับ <b class="mono">'+G.caught+'</b></span>'
+    +'<div class="meta"><span class="badge">'+m.name+'</span>'+clsBadge()+'<span>โอกาส '+lives+'</span><span>ถูกจับ <b class="mono">'+G.caught+'</b></span>'
     +sndBtn()+chatBtn()+'<button class="btn-link" data-act="home">หน้าแรก</button></div>'
     +'<div class="steps" role="img" aria-label="'+(bossHere()?'ด่านบอส':'ด่านที่ '+numAt(G.stage)+' จาก '+nPuz(G.mode))+'">'+steps+'</div></div>';
 }
@@ -2753,13 +2807,14 @@ function showHome(){
   +'<h1>IQ 300 แหกโรงบาล</h1>'
   +'<p class="lede">คุณคือคนไข้ที่ฉลาดที่สุดในตึก และเป็นคนเดียวที่ไม่มีใครเชื่อ</p><p class="notice" role="note">'+esc(rp(ANNOUNCE))+'</p><div class="bigplay"><button class="btn primary big" data-act="hall">▶ เล่น</button></div><div>'+sndBtn()+'</div></header>'
   +'<div class="cols">'
-  +'<section class="folder"><div class="ftab">แฟ้มผู้ป่วยใน</div><div class="card"><dl class="profile">'
+  +'<section class="folder"><div class="ftab">แฟ้มผู้ป่วยใน'+(ME.cls!=='none'?' · เลขที่ '+clsOf(ME.cls).no:'')+'</div><div class="card"><dl class="profile">'
   +'<div><dt>ชื่อ</dt><dd>ธีรภัทร์ สมองเพชร (เรียกกันว่า "ธี")</dd></div>'
   +'<div><dt>อายุ</dt><dd>29 ปี</dd></div>'
   +'<div><dt>IQ</dt><dd><button class="iq mono iqbtn" data-act="iq" aria-label="IQ 300 กดเพื่อดูผลตรวจ">300</button> <span class="muted small" id="iqmsg">ตามที่ผู้ป่วยแจ้งเอง (ลองจิ้มเลข)</span></dd></div>'
   +'<div><dt>สถานที่</dt><dd>โรงพยาบาลสวนสติหลุด ตึก 4 ห้อง 407</dd></div>'
   +'<div><dt>สาเหตุที่ถูกส่งตัว</dt><dd>ในงานเลี้ยงรุ่น คุณประกาศว่าคำนวณได้ว่าก๋วยเตี๋ยวป้าติ๋มปากซอยใส่น้ำตาลเกินสูตรเดิม 3.7% แล้ววาดสมการยาวสามเมตรบนผนังร้าน ทุกคนสรุปว่าคุณบ้า ญาติจึงลงนามส่งตัวเข้ามา</dd></div>'
   +'<div><dt>ประวัติ</dt><dd>พยายามหนีมาแล้วเก้ารอบ โดนจับทั้งเก้ารอบเพราะลืมคิดอะไรสักอย่าง คืนนี้คุณมีแผนใหม่ที่เขียนซ่อนไว้ใต้ฟูก</dd></div>'
+  +clsRow()
   +'</dl></div></section>'
   +'<section class="folder"><div class="ftab">วิธีเล่น</div><div class="card"><dl class="howto">'
   +'<div><dt>15 ด่านของการหนี (ยากมากๆ 20 ด่าน โหมดคลั่ง 30 ด่าน)</dt><dd>แต่ละด่านมีแผนที่และอุปสรรคไม่เหมือนกัน คือถอดรหัสตัวเลข หลบกล้อง หากุญแจ ตัดสายไฟ และเจาะรหัสประตู</dd></div>'
@@ -2784,7 +2839,7 @@ function brief(){
   stopTimer();G.screen='brief';setSc('idle');G.S=null;
   const st=ST(),m=mode();
   const timeLine=m.timeScale>0&&!bossHere()
-    ?'ยามจะมาถึงในประมาณ <b>'+Math.round(BASE[SI()]*m.timeScale)+' วินาที</b> ถ้าคุณไม่ตอบผิดหรือขอใบ้'
+    ?'ยามจะมาถึงในประมาณ <b>'+Math.round(BASE[SI()]*m.timeScale/perk('timeMul',1))+' วินาที</b> ถ้าคุณไม่ตอบผิดหรือขอใบ้'
     :'โหมดนี้ไม่จับเวลา คิดได้เต็มที่';
   main.innerHTML=topbar()
   +'<section class="folder"><div class="ftab">'+stageTag(G.stage)+' · '+st.place+'</div><div class="card">'
@@ -2820,7 +2875,7 @@ function beginStage(){
   +'<p class="muted small kb">'+(isRage()?'เดิน: ลูกศรหรือ WASD · ใช้แผง: E · ต่อย: Space หรือ F · คลั่ง: R':'เดิน: ลูกศรหรือ WASD · ใช้แผง: E')+'</p>'
   +'<div class="acts"><button class="btn primary" id="useBtn" data-act="use" disabled>ใช้แผง (E)</button>'+(isRage()?'<button class="btn" id="punchBtn" data-act="punch">ต่อย (F)</button><button class="btn" id="rageBtn" data-act="rage" disabled>คลั่ง! (R)</button>':'')+(G.race?'<button class="btn chatbig'+(G.race.unread?' new':'')+'" id="chatBigBtn" data-act="chat-toggle">💬 แชต<span class="cbadge">'+(G.race.unread?' ('+G.race.unread+')':'')+'</span></button>':'')+'</div></div></div>'
   +'<div id="puzzlebox" hidden><div class="pz-head"><b>หน้าจอแผง</b><button class="btn ghost" data-act="close-puzzle">ถอยออกมา (Esc)</button></div><div id="stagebody"></div></div>'
-  +'<div class="foot"><button class="btn ghost" data-act="hint">ขอใบ้ (ความสงสัย +'+m.hint+'%)</button></div></div></section>';
+  +'<div class="foot"><button class="btn ghost" data-act="hint">ขอใบ้ (ความสงสัย +'+hintPen()+'%)</button></div></div></section>';
   renderStage();updateMeter();startTimer();initWorld();updBpLine();
   window.scrollTo(0,0);
 }
@@ -2834,7 +2889,7 @@ function tick(){
   const S=G.S;if(!S||G.screen!=='play')return;
   G.playTime+=dt;
   const m=mode();
-  if(m.timeScale>0&&!bossHere())S.susp=Math.min(100,S.susp+dt*100/(BASE[SI()]*m.timeScale));
+  if(m.timeScale>0&&!bossHere())S.susp=Math.min(100,S.susp+dt*100/(BASE[SI()]*m.timeScale)*perk('timeMul',1));
   updateMeter();
   if(S.susp>=100)caught();
 }
@@ -2847,7 +2902,7 @@ function updateMeter(){
   $('#meter').setAttribute('aria-valuenow',String(Math.floor(v)));
   const m=mode(),t=$('#mtime');
   if(t){
-    if(m.timeScale>0&&!bossHere()){const rate=100/(BASE[SI()]*m.timeScale);t.textContent='ยามมาถึงในอีกประมาณ '+Math.max(0,Math.ceil((100-v)/rate))+' วินาที';}
+    if(m.timeScale>0&&!bossHere()){const rate=100/(BASE[SI()]*m.timeScale)*perk('timeMul',1);t.textContent='ยามมาถึงในอีกประมาณ '+Math.max(0,Math.ceil((100-v)/rate))+' วินาที';}
     else t.textContent='ไม่จับเวลา';
   }
 }
@@ -2948,7 +3003,7 @@ function submitSeq(){
     renderStage();const e=$('#seqAns');if(e)e.focus();
   }else{
     S.msg='ประตูส่งเสียงเตือน รหัสไม่ถูก';shake();
-    if(addSusp(mode().wrong))return;
+    if(addSusp(wrongPen()))return;
     renderStage();const e=$('#seqAns');if(e)e.focus();
   }
 }
@@ -2988,7 +3043,7 @@ function camGo(){
   let who=0;for(let i=0;i<C.cams.length;i++){if(camWatching(C.cams[i],s+i)){who=i;break;}}
   S.out.add(s);S.sel=null;
   S.msg='กล้อง '+(who+1)+' จับภาพคุณได้ตอนวินาทีที่ '+(s+who);shake();
-  if(addSusp(mode().wrong))return;
+  if(addSusp(wrongPen()))return;
   renderStage();
 }
 function hintCam(){
@@ -3015,7 +3070,7 @@ function drawerOpen(i){
   const S=G.S,K=S.key;if(S.out.has(i))return;
   if(i===K.answer){solved();return;}
   S.out.set(i,'ว่างเปล่า');S.msg='ลิ้นชัก '+K.L[i]+' ว่างเปล่า และเสียงลิ้นชักดังไปทั้งห้อง';shake();
-  if(addSusp(mode().wrong))return;
+  if(addSusp(wrongPen()))return;
   renderStage();
 }
 function hintKey(){
@@ -3041,7 +3096,7 @@ function cutWire(i){
   const S=G.S,Wr=S.wires;if(Wr.out.has(i))return;
   if(i===Wr.ans){solved();return;}
   Wr.out.add(i);S.msg='สายสี'+WIRE_COLORS[Wr.order[i]].n+'ไม่ใช่สายหลัก มีประกายไฟแล้วเสียงดังไปทั้งห้อง';shake();
-  if(addSusp(mode().wrong))return;
+  if(addSusp(wrongPen()))return;
   renderStage();
 }
 function hintWires(){
@@ -3078,7 +3133,7 @@ function mmSend(){
   if(fb.b===M.len){solved();return;}
   if(M.hist.length>=M.max){S.susp=100;updateMeter();caught('ลองรหัสครบทุกครั้งแล้วประตูยังไม่เปิด ยามได้ยินเสียงกดปุ่มรัวๆ จึงเดินมาดู');return;}
   if(Math.random()<.5)S.msg=rp(MM_QUIPS);
-  if(addSusp(Math.round(mode().wrong*0.4)))return;
+  if(addSusp(Math.round(wrongPen()*0.4)))return;
   renderStage();
 }
 function hintMM(){
@@ -3096,7 +3151,7 @@ function useHint(){
   const ok=[hintSeq,hintCam,hintKey,hintWires,hintMM][ST().p]();
   if(!ok){S.msg='ตอนนี้ไม่มีใบ้เพิ่มให้แล้ว';renderStage();return;}
   G.hints++;ME.cnt.hints++;checkAch();bpAdd('hints');S.msg+=' · '+rp(HINT_QUIPS);
-  if(addSusp(mode().hint))return;
+  if(addSusp(hintPen()))return;
   renderStage();
 }
 
@@ -3114,12 +3169,16 @@ function normMe(j){
   j=j&&typeof j==='object'?j:{};const b=j.best&&typeof j.best==='object'?j.best:{};
   const nn=x=>{x=+x;return isFinite(x)&&x>0?Math.floor(x):0;};
   const best={};MODE_IDS.forEach(id=>{best[id]=numOk(b[id]);});
-  return {name:cleanName(j.name),wins:nn(j.wins),caught:nn(j.caught),best,raceBest:numOk(j.raceBest),racePlayed:nn(j.racePlayed),raceWins:nn(j.raceWins),kos:nn(j.kos),bowls:nn(j.bowls),spent:nn(j.spent),owned:normOwned(j.owned),wear:normWear(j.wear),ach:normAch(j.ach),cnt:normCnt(j.cnt),bp:normBp(j.bp)};
+  return {name:cleanName(j.name),wins:nn(j.wins),caught:nn(j.caught),best,raceBest:numOk(j.raceBest),racePlayed:nn(j.racePlayed),raceWins:nn(j.raceWins),kos:nn(j.kos),bowls:nn(j.bowls),spent:nn(j.spent),owned:normOwned(j.owned),cls:normCls(j.cls,j.owned),wear:normWear(j.wear),ach:normAch(j.ach),cnt:normCnt(j.cnt),bp:normBp(j.bp)};
 }
 function normOwned(a){
   const out=new Set();
-  if(Array.isArray(a))a.forEach(k=>{if(typeof k!=='string')return;const q=k.split(':');if(q.length===2&&itemOf(q[0],q[1])&&itemOf(q[0],q[1]).price>0)out.add(k);});
+  if(Array.isArray(a))a.forEach(k=>{if(typeof k!=='string')return;const q=k.split(':');if(q.length!==2)return;if(q[0]==='cls'){const c=CLASSES.find(x=>x.id===q[1]);if(c&&c.price>0)out.add(k);}else if(itemOf(q[0],q[1])&&itemOf(q[0],q[1]).price>0)out.add(k);});
   return Array.from(out).sort();
+}
+function normCls(c,owned){
+  const k=typeof c==='string'?c:'',cl=CLASSES.find(x=>x.id===k);
+  return cl&&(cl.price===0||normOwned(owned).includes('cls:'+k))?k:'none';
 }
 function normWear(w){
   w=w&&typeof w==='object'?w:{};const o={};
@@ -3160,7 +3219,7 @@ const hasItem=(slot,id)=>{
 };
 const balance=()=>Math.max(0,ME.bowls-ME.spent);
 function exportOf(x){
-  const o={name:x.name,wins:x.wins,caught:x.caught,racePlayed:x.racePlayed,raceWins:x.raceWins,kos:x.kos,bowls:x.bowls,spent:x.spent,owned:x.owned.slice().sort(),wear:Object.assign({},x.wear),ach:x.ach.slice().sort(),cnt:Object.assign({},x.cnt),bp:{xp:x.bp.xp,lv:x.bp.lv,nx:x.bp.nx,a:x.bp.a.map(m=>m.slice())},best:{}};
+  const o={name:x.name,wins:x.wins,caught:x.caught,racePlayed:x.racePlayed,raceWins:x.raceWins,kos:x.kos,bowls:x.bowls,spent:x.spent,owned:x.owned.slice().sort(),cls:x.cls,wear:Object.assign({},x.wear),ach:x.ach.slice().sort(),cnt:Object.assign({},x.cnt),bp:{xp:x.bp.xp,lv:x.bp.lv,nx:x.bp.nx,a:x.bp.a.map(m=>m.slice())},best:{}};
   MODE_IDS.forEach(id=>{if(x.best[id])o.best[id]=x.best[id];});
   if(x.raceBest)o.raceBest=x.raceBest;
   return o;
@@ -3183,6 +3242,7 @@ function mergeRemote(r){
   if(!ME.name&&r.name)ME.name=r.name;
   ME.wins=Math.max(ME.wins,r.wins);ME.caught=Math.max(ME.caught,r.caught);ME.kos=Math.max(ME.kos,r.kos);ME.bowls=Math.max(ME.bowls,r.bowls);ME.spent=Math.max(ME.spent,r.spent);ME.owned=normOwned(ME.owned.concat(r.owned));ME.ach=normAch(ME.ach.concat(r.ach));Object.keys(ME.cnt).forEach(k=>{ME.cnt[k]=Math.max(ME.cnt[k],r.cnt[k]||0);});mergeBp(r.bp);
   if(JSON.stringify(ME.wear)===JSON.stringify(DEF_WEAR))ME.wear=Object.assign({},r.wear);
+  if(ME.cls==='none'&&r.cls&&r.cls!=='none'&&clsOwn(r.cls))ME.cls=r.cls;
   ME.racePlayed=Math.max(ME.racePlayed,r.racePlayed);ME.raceWins=Math.max(ME.raceWins,r.raceWins);
   MODE_IDS.forEach(id=>{ME.best[id]=minN(ME.best[id],r.best[id]);});
   ME.raceBest=minN(ME.raceBest,r.raceBest);
@@ -3236,7 +3296,7 @@ function playerSection(){
    +nameForm('pname')
    +'<p class="muted small" id="svcstat" role="status" style="margin:10px 0"></p>'
    +'<div class="stats" id="mystats">'+myStatsHtml()+'</div>'
-   +'<div class="actions"><button class="btn primary" data-act="board">ลีดเดอร์บอร์ด</button><button class="btn" data-act="wardrobe">ห้องแต่งตัว</button><button class="btn" data-act="pass">บัตรผ่าน (เลเวล '+ME.bp.lv+')</button><button class="btn" data-act="ach">เหรียญความสำเร็จ</button></div>'
+   +'<div class="actions"><button class="btn primary" data-act="board">ลีดเดอร์บอร์ด</button><button class="btn" data-act="wardrobe">ห้องแต่งตัว</button><button class="btn" data-act="files">แฟ้มประวัติ (คลาส)</button><button class="btn" data-act="pass">บัตรผ่าน (เลเวล '+ME.bp.lv+')</button><button class="btn" data-act="ach">เหรียญความสำเร็จ</button></div>'
    +'</div></section>';
 }
 async function initServices(){
@@ -3479,7 +3539,7 @@ function showHall(){
    +'<section class="folder"><div class="ftab">ห้องโถงพยาบาล</div><div class="card hall">'
    +'<p class="story">ผู้ป่วยทั้งตึกมานั่งรอพบหมอเต็มห้องโถง ธีเดินแทรกเข้ามาอย่างไม่มีพิรุธ (มีพิรุธมาก) เลือกโหมดก่อน แล้วจะหนีคนเดียว หรือเข้าห้องไปหนีพร้อมเพื่อนก็ได้</p>'
    +'<h3>เลือกโหมด</h3><div class="modechips">'+pickChips(false)+'</div><p class="muted small" id="pickdesc">'+esc(pickDescText(G.pick))+'</p>'
-   +'<div class="actions"><button class="btn primary" data-act="solo">เล่นคนเดียว</button></div>'
+   +'<div class="actions"><button class="btn primary" data-act="solo">เล่นคนเดียว</button><button class="btn" data-act="files">แฟ้มประวัติ (คลาส)</button></div>'
    +'<h3 style="margin-top:22px">หรือเข้าห้องเล่นกับเพื่อน</h3>'
    +'<p class="muted small" style="margin:0 0 10px">ห้อง 101-105 ใครก็เข้าได้ เห็นเพื่อนเดินในแผนที่เดียวกัน ได้โจทย์ชุดเดียวกัน และพิมพ์คุยกันได้ ห้องละไม่เกิน 8 คน</p>'
    +'<div class="hintline" role="note">ห้องนี้เปิดให้คนที่ไม่รู้จักเข้ามาได้ อย่าบอกชื่อจริง เบอร์โทร โรงเรียน หรือที่อยู่ ข้อความจะถูกกรองอัตโนมัติ ปิดแชตหรือปิดเสียงเพื่อนได้ทุกเมื่อ</div>'
@@ -3790,6 +3850,49 @@ function leaveRace(){
 
 
 /* ---------- ห้องแต่งตัว ---------- */
+/* ---------- หน้าแฟ้มประวัติ (เลือก/ซื้อคลาส) ---------- */
+const FL={from:'home'};
+const clsLocked=()=>!!G.race||['play','brief','clear','over'].indexOf(G.screen)>=0;
+function clsRow(){
+  if(ME.cls==='none')return '';
+  const c=clsOf(ME.cls);
+  return '<div><dt>คลาสปัจจุบัน</dt><dd>'+c.icon+' '+esc(c.name)+' · '+esc(c.skill)+'</dd></div>'
+   +'<div><dt>อาการประจำแฟ้ม</dt><dd>'+esc(c.sym)+'</dd></div>';
+}
+function showFiles(keep){
+  stopTimer();G.screen='files';
+  const lock=clsLocked();
+  const cards=CLASSES.map(c=>{
+    const own=clsOwn(c.id),use=ME.cls===c.id;
+    let btn;
+    if(use)btn='<button class="btn" disabled>ใช้แฟ้มนี้อยู่</button>';
+    else if(lock)btn='<button class="btn" disabled>เปลี่ยนตอนเล่นไม่ได้</button>';
+    else if(own)btn='<button class="btn primary" data-act="cls-use" data-id="'+c.id+'">ใช้แฟ้มนี้</button>';
+    else if(balance()>=c.price)btn='<button class="btn primary" data-act="cls-use" data-id="'+c.id+'">ซื้อและใช้ ('+c.price+' ชาม)</button>';
+    else btn='<button class="btn" disabled>ชามไม่พอ ขาดอีก '+(c.price-balance())+' ชาม</button>';
+    return '<article class="cfile'+(use?' on':'')+(own?' own':'')+'" aria-label="'+esc(c.name)+'">'
+     +'<div class="cf-head"><span class="cf-no mono">แฟ้มเลขที่ '+c.no+'</span><span class="cf-ico" aria-hidden="true">'+c.icon+'</span></div>'
+     +'<h3>'+esc(c.name)+'</h3>'
+     +'<dl><div><dt>อาการ</dt><dd>'+esc(c.sym)+'</dd></div><div><dt>ประวัติ</dt><dd>'+esc(c.his)+'</dd></div><div><dt>ความสามารถ</dt><dd class="cf-skill">'+esc(c.skill)+'</dd></div></dl>'
+     +'<div class="cf-foot"><span class="cf-price mono">'+(c.price?(own?'ซื้อแล้ว':c.price+' ชาม'):'ฟรี')+'</span>'+btn+'</div></article>';
+  }).join('');
+  main.innerHTML='<div class="topbar"><div class="who"><span class="hn">เวชระเบียน</span>แฟ้มประวัติผู้ป่วย</div><div class="meta"><span class="bal">ชามก๋วยเตี๋ยวในกระเป๋า <b class="mono">'+balance()+'</b></span><button class="btn-link" data-act="files-back">กลับ</button></div></div>'
+   +'<section class="folder"><div class="ftab">เลือกแฟ้มประวัติ</div><div class="card">'
+   +'<p class="story" style="margin-top:0">ธีไปขอแฟ้มประวัติใหม่ที่ห้องเวชระเบียน แต่ละแฟ้มคือคนไข้คนละแบบ มีอาการและความสามารถไม่เหมือนกัน ซื้อด้วยชามก๋วยเตี๋ยว ซื้อครั้งเดียวใช้ได้ตลอด</p>'
+   +'<p class="hintline" role="note">'+(lock?'ตอนนี้กำลังเล่นอยู่ จึงเปลี่ยนแฟ้มไม่ได้':'เปลี่ยนแฟ้มได้ทุกเมื่อ แต่เปลี่ยนตอนกำลังเล่นด่านไม่ได้ ต้องกลับมาที่หน้าแรกหรือห้องโถงก่อน')+'</p>'
+   +'<div class="cfiles">'+cards+'</div></div></section>';
+  if(!keep)window.scrollTo(0,0);
+}
+function clsUse(id){
+  const c=CLASSES.find(x=>x.id===id);if(!c)return;
+  if(clsLocked()){toast({tag:'เวชระเบียน',name:'เปลี่ยนแฟ้มตอนเล่นไม่ได้',fun:'เจ้าหน้าที่บอกให้รอถึงหน้าแรกก่อน'});return;}
+  if(!clsOwn(c.id)){
+    if(balance()<c.price)return;
+    ME.spent+=c.price;ME.owned=normOwned(ME.owned.concat(['cls:'+c.id]));sfx('solve');
+  }else sfx('pickup');
+  ME.cls=c.id;saveLocal();pushMe();checkAch();showFiles(true);
+}
+
 const WD={slot:'outfit',pre:null,raf:0};
 function showWardrobe(keep){
   stopTimer();G.screen='wardrobe';
@@ -4176,6 +4279,9 @@ const ACT={
     if(sndOn)sfx('pickup');
   },
   wardrobe:()=>{WD.pre=Object.assign({},ME.wear);WD.slot='outfit';showWardrobe();},
+  files:()=>{if(clsLocked())return;FL.from=G.screen==='hall'?'hall':'home';showFiles();},
+  'files-back':()=>{FL.from==='hall'?showHall():showHome();},
+  'cls-use':b=>clsUse(b.dataset.id),
   'wd-slot':b=>{WD.slot=b.dataset.s;showWardrobe(true);},
   'wd-pick':b=>{WD.pre[WD.slot]=b.dataset.id;showWardrobe(true);},
   'wd-wear':()=>wdWear(),
